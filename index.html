@@ -1,0 +1,1917 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>מלון גומא - סימולטור תלת-ממדי</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none;
+        }
+
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+            cursor: pointer;
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            backdrop-filter: blur(5px);
+            max-width: 300px;
+            border: 2px solid #fbc531;
+        }
+
+        h1 {
+            margin: 0 0 10px 0;
+            font-size: 24px;
+            color: #d63031;
+            text-align: center;
+        }
+
+        p {
+            margin: 5px 0;
+            color: #2d3436;
+            font-size: 15px;
+            text-align: center;
+        }
+
+        .controls {
+            margin-top: 15px;
+            background: #ffeaa7;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 13px;
+            color: #2d3436;
+            border: 1px solid #fdcb6e;
+        }
+
+        #money-display {
+            font-size: 20px;
+            font-weight: bold;
+            color: #2d1b4e;
+            background: linear-gradient(135deg,#fdf6c9,#f5d76e);
+            border: 2px solid #d4af37;
+            border-radius: 10px;
+            padding: 6px 10px;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        #reception-status {
+            font-size: 13px;
+            color: #2d3436;
+            text-align: center;
+            margin-top: 6px;
+            background: #eaf6ff;
+            border: 1px solid #74b9ff;
+            border-radius: 8px;
+            padding: 6px;
+        }
+
+        #loader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #ffeaa7, #fab1a0);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #2d3436;
+            font-size: 24px;
+            font-weight: bold;
+            z-index: 9999;
+            transition: opacity 0.5s ease;
+        }
+
+        #loader span {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        #hud-message {
+            position: fixed;
+            bottom: 90px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(45, 27, 78, 0.92);
+            color: #fbc531;
+            padding: 10px 22px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            pointer-events: none;
+            z-index: 20;
+            text-align: center;
+        }
+
+        #hud-message.show {
+            opacity: 1;
+        }
+
+        #mouse-hint {
+            position: fixed;
+            bottom: 30px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.55);
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            z-index: 20;
+            pointer-events: none;
+        }
+
+        .hidden { display: none !important; }
+
+        #checkin-button {
+            position: fixed;
+            bottom: 150px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90px;
+            height: 90px;
+            z-index: 25;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;
+            cursor: pointer;
+        }
+        #checkin-button svg {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            transform: rotate(-90deg);
+        }
+        #checkin-button .ring-bg {
+            fill: rgba(0,0,0,0.55);
+            stroke: rgba(255,255,255,0.25);
+            stroke-width: 6;
+        }
+        #checkin-button .ring-fg {
+            fill: none;
+            stroke: #3498db;
+            stroke-width: 6;
+            stroke-linecap: round;
+            stroke-dasharray: 263.89;
+            stroke-dashoffset: 263.89;
+        }
+        #checkin-button .checkin-icon {
+            position: relative;
+            font-size: 32px;
+            z-index: 1;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+    <div id="loader"><span>🏨</span>טוען את מלון גומא...</div>
+    <div id="canvas-container"></div>
+    <div id="hud-message"></div>
+    <div id="mouse-hint">🖱️ גרור עם העכבר (לחיצה + הזזה) כדי לסובב את המצלמה</div>
+    <div id="checkin-button" class="hidden">
+        <svg viewBox="0 0 100 100">
+            <circle class="ring-bg" cx="50" cy="50" r="42"></circle>
+            <circle id="checkin-progress" class="ring-fg" cx="50" cy="50" r="42"></circle>
+        </svg>
+        <span class="checkin-icon" id="checkin-icon">🔑</span>
+    </div>
+
+    <div id="ui-layer">
+        <div id="money-display">💵 <span id="money-value">0</span></div>
+        <h1>מלון גומא 🛎️</h1>
+        <p>נער השירות מוכן לפעולה!</p>
+        <div class="controls">
+            <strong>מקשי שליטה:</strong><br>
+            • תנועה: מקשי החיצים או W, A, S, D<br>
+            • עלייה במדרגות: פשוט להיכנס אליהן<br>
+            • E: לקנות חדר בקומה 2, לשכור מנקה ליד המדרגות, או לשכור פקיד קבלה ליד הדלפק<br>
+            • ליד דלפק הקבלה: החזק E, או לחץ והחזק על כפתור המפתח 🔑 שתי שניות, כדי לתת חדר לאורח ממתין<br>
+            • על מקום מלוכלך בחדר: החזק E, או לחץ והחזק על כפתור המטאטא 🧹 שתי שניות, כדי לנקות<br>
+            • עכבר: לחץ על המסך לשליטה בזווית המצלמה
+        </div>
+        <div id="reception-status">🧑‍💼 אורחים ממתינים בקבלה: <span id="guests-waiting">0</span></div>
+    </div>
+
+    <script>
+        // --- הגדרות בסיסיות ---
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xf0e4d0);
+        scene.fog = new THREE.FogExp2(0xf0e4d0, 0.012);
+
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        container.appendChild(renderer.domElement);
+
+        // --- תאורה חמה ---
+        const ambientLight = new THREE.AmbientLight(0xfff2e0, 0.55);
+        scene.add(ambientLight);
+
+        const sunLight = new THREE.DirectionalLight(0xfff2e6, 1.0);
+        sunLight.position.set(20, 40, 20);
+        sunLight.castShadow = true;
+        sunLight.shadow.mapSize.width = 2048;
+        sunLight.shadow.mapSize.height = 2048;
+        sunLight.shadow.camera.left = -45;
+        sunLight.shadow.camera.right = 45;
+        sunLight.shadow.camera.top = 45;
+        sunLight.shadow.camera.bottom = -45;
+        scene.add(sunLight);
+
+        // --- חומרים ---
+        const floorMat = new THREE.MeshStandardMaterial({ color: 0xc8d6e5, roughness: 0.35 });
+        const carpetMat = new THREE.MeshStandardMaterial({ color: 0x8c2f39, roughness: 0.9 });
+        const carpetGoldMat = new THREE.MeshStandardMaterial({ color: 0xd4af37, roughness: 0.6, metalness: 0.3 });
+        const wallMat = new THREE.MeshStandardMaterial({ color: 0xf5ecd9, roughness: 0.85 });
+        const wallTrimMat = new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.6, roughness: 0.3 });
+        const deskMat = new THREE.MeshStandardMaterial({ color: 0x8c7ae6, roughness: 0.5 });
+        const deskTopMat = new THREE.MeshStandardMaterial({ color: 0x2d1b4e, roughness: 0.25, metalness: 0.2 });
+        const columnMat = new THREE.MeshStandardMaterial({ color: 0xfdf6e3, roughness: 0.4 });
+        const columnGoldMat = new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.7, roughness: 0.25 });
+        const glassMat = new THREE.MeshStandardMaterial({ color: 0xaee1f9, roughness: 0.1, metalness: 0.2, transparent: true, opacity: 0.55 });
+        const windowFrameMat = new THREE.MeshStandardMaterial({ color: 0x3d2b1f, roughness: 0.5 });
+        const woodMat = new THREE.MeshStandardMaterial({ color: 0x6b3f2a, roughness: 0.6 });
+        const foliageMat = new THREE.MeshStandardMaterial({ color: 0x2f7a3d, roughness: 0.8 });
+        const potMat = new THREE.MeshStandardMaterial({ color: 0xa0522d, roughness: 0.7 });
+        const sofaMat = new THREE.MeshStandardMaterial({ color: 0x7a1f2b, roughness: 0.7 });
+        const sofaCushionMat = new THREE.MeshStandardMaterial({ color: 0xd4af37, roughness: 0.6 });
+        const paintingFrameMat = new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.5, roughness: 0.3 });
+        const chandelierMat = new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.8, roughness: 0.2 });
+        const marbleStairMat = new THREE.MeshStandardMaterial({ color: 0xe8ded0, roughness: 0.3 });
+        const elevatorDoorMat = new THREE.MeshStandardMaterial({ color: 0xb8860b, metalness: 0.7, roughness: 0.25 });
+        const bellMat = new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 0.8, roughness: 0.2 });
+        const roomFloorMat = new THREE.MeshStandardMaterial({ color: 0xc48a5a, roughness: 0.7 });
+        const roomWallMat = new THREE.MeshStandardMaterial({ color: 0xf5ecd9, roughness: 0.8 });
+        const mattressMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9 });
+
+        // ==========================================================
+        // רצפה ראשית + שטיח מרכזי מפואר
+        // ==========================================================
+        const floor = new THREE.Mesh(new THREE.PlaneGeometry(90, 90), floorMat);
+        floor.rotation.x = -Math.PI / 2;
+        floor.receiveShadow = true;
+        scene.add(floor);
+
+        const carpet = new THREE.Mesh(new THREE.PlaneGeometry(16, 40), carpetMat);
+        carpet.rotation.x = -Math.PI / 2;
+        carpet.position.set(0, 0.01, 0);
+        carpet.receiveShadow = true;
+        scene.add(carpet);
+
+        const carpetBorder1 = new THREE.Mesh(new THREE.PlaneGeometry(17, 1), carpetGoldMat);
+        carpetBorder1.rotation.x = -Math.PI / 2;
+        carpetBorder1.position.set(0, 0.015, 19.5);
+        scene.add(carpetBorder1);
+        const carpetBorder2 = carpetBorder1.clone();
+        carpetBorder2.position.set(0, 0.015, -19.5);
+        scene.add(carpetBorder2);
+
+        // ==========================================================
+        // קירות + חלונות + תקרה
+        // ==========================================================
+        function createWall(w, h, x, y, z, rotY) {
+            const wall = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.4), wallMat);
+            wall.position.set(x, y, z);
+            wall.rotation.y = rotY;
+            wall.castShadow = true;
+            wall.receiveShadow = true;
+            scene.add(wall);
+        }
+
+        createWall(90, 16, 0, 8, -45, 0);
+        createWall(90, 16, 0, 8, 45, 0);
+        createWall(90, 16, -45, 8, 0, Math.PI / 2);
+        createWall(90, 16, 45, 8, 0, Math.PI / 2);
+
+        const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(90, 90), wallMat);
+        ceiling.rotation.x = Math.PI / 2;
+        ceiling.position.set(0, 16, 0);
+        scene.add(ceiling);
+
+        // --- מתאמי התנגשות לכל הקירות (חיצוניים + חדרים) ---
+        const wallColliders = [
+            { xMin: -45, xMax: 45, zMin: -45.2, zMax: -44.8 }, // קיר אחורי
+            { xMin: -45, xMax: 45, zMin: 44.8, zMax: 45.2 },   // קיר קדמי
+            { xMin: -45.2, xMax: -44.8, zMin: -45, zMax: 45 }, // קיר שמאל
+            { xMin: 44.8, xMax: 45.2, zMin: -45, zMax: 45 },   // קיר ימין
+        ];
+        function collidesWithWall(x, z, radius) {
+            for (const w of wallColliders) {
+                if (x + radius > w.xMin && x - radius < w.xMax && z + radius > w.zMin && z - radius < w.zMax) return true;
+            }
+            return false;
+        }
+
+        function createWindow(x, z, rotY) {
+            const group = new THREE.Group();
+            const frame = new THREE.Mesh(new THREE.BoxGeometry(4.4, 7.4, 0.3), windowFrameMat);
+            const glass = new THREE.Mesh(new THREE.PlaneGeometry(4, 7), glassMat);
+            glass.position.z = 0.2;
+            const barV = new THREE.Mesh(new THREE.BoxGeometry(0.15, 7, 0.35), windowFrameMat);
+            const barH = new THREE.Mesh(new THREE.BoxGeometry(4, 0.15, 0.35), windowFrameMat);
+            group.add(frame, glass, barV, barH);
+            group.position.set(x, 8, z);
+            group.rotation.y = rotY;
+            scene.add(group);
+        }
+        for (let i = -30; i <= 30; i += 15) {
+            createWindow(-44.8, i, Math.PI / 2);
+            createWindow(44.8, i, Math.PI / 2);
+        }
+
+        function createColumn(x, z) {
+            const group = new THREE.Group();
+            const base = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.1, 0.4, 24), columnGoldMat);
+            base.position.y = 0.2;
+            const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 14, 24), columnMat);
+            shaft.position.y = 7.4;
+            shaft.castShadow = true;
+            const cap = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.1, 0.4, 24), columnGoldMat);
+            cap.position.y = 14.6;
+            group.add(base, shaft, cap);
+            group.position.set(x, 0, z);
+            scene.add(group);
+        }
+        [[-20, -20], [20, -20], [-20, 20], [20, 20], [-38, 0], [38, 0]].forEach(p => createColumn(p[0], p[1]));
+
+        // ==========================================================
+        // דלפק קבלה
+        // ==========================================================
+        const desk = new THREE.Mesh(new THREE.BoxGeometry(14, 3, 4), deskMat);
+        desk.position.set(0, 1.5, -2);
+        desk.castShadow = true;
+        desk.receiveShadow = true;
+        scene.add(desk);
+
+        const deskTop = new THREE.Mesh(new THREE.BoxGeometry(14.4, 0.2, 4.4), deskTopMat);
+        deskTop.position.set(0, 3.1, -2);
+        deskTop.castShadow = true;
+        scene.add(deskTop);
+
+        const deskTrim = new THREE.Mesh(new THREE.BoxGeometry(14.2, 0.1, 4.2), wallTrimMat);
+        deskTrim.position.set(0, 0.05, -2);
+        scene.add(deskTrim);
+
+        const bellBase = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.3, 0.15, 16), bellMat);
+        bellBase.position.set(3, 3.28, -2);
+        scene.add(bellBase);
+        const bellTop = new THREE.Mesh(new THREE.SphereGeometry(0.22, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2), bellMat);
+        bellTop.position.set(3, 3.35, -2);
+        scene.add(bellTop);
+
+        const monitorStand = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.4, 0.2), new THREE.MeshStandardMaterial({ color: 0x333333 }));
+        monitorStand.position.set(-3, 3.35, -2);
+        scene.add(monitorStand);
+        const monitorScreen = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.8, 0.1), new THREE.MeshStandardMaterial({ color: 0x1e1e2e, emissive: 0x4c74d6, emissiveIntensity: 0.4 }));
+        monitorScreen.position.set(-3, 3.8, -2);
+        scene.add(monitorScreen);
+
+        // ==========================================================
+        // עציצים
+        // ==========================================================
+        function createPlant(x, z, scale = 1) {
+            const group = new THREE.Group();
+            const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.6 * scale, 0.45 * scale, 1 * scale, 16), potMat);
+            pot.position.y = 0.5 * scale;
+            pot.castShadow = true;
+            const foliage1 = new THREE.Mesh(new THREE.SphereGeometry(0.9 * scale, 12, 12), foliageMat);
+            foliage1.position.y = 1.6 * scale;
+            const foliage2 = new THREE.Mesh(new THREE.SphereGeometry(0.65 * scale, 12, 12), foliageMat);
+            foliage2.position.set(0.4 * scale, 2.2 * scale, 0.2 * scale);
+            const foliage3 = new THREE.Mesh(new THREE.SphereGeometry(0.6 * scale, 12, 12), foliageMat);
+            foliage3.position.set(-0.4 * scale, 2.1 * scale, -0.3 * scale);
+            foliage1.castShadow = foliage2.castShadow = foliage3.castShadow = true;
+            group.add(pot, foliage1, foliage2, foliage3);
+            group.position.set(x, 0, z);
+            scene.add(group);
+        }
+        createPlant(-8.5, -2, 1.1);
+        createPlant(8.5, -2, 1.1);
+        createPlant(-40, -40, 1.3);
+        createPlant(-40, 40, 1.3);
+        createPlant(40, 40, 1.3);
+
+        // ==========================================================
+        // פינת ישיבה
+        // ==========================================================
+        function createSofa(x, z, rotY) {
+            const group = new THREE.Group();
+            const base = new THREE.Mesh(new THREE.BoxGeometry(4, 0.9, 1.6), sofaMat);
+            base.position.y = 0.45;
+            const back = new THREE.Mesh(new THREE.BoxGeometry(4, 1.2, 0.4), sofaMat);
+            back.position.set(0, 1.1, -0.6);
+            const armL = new THREE.Mesh(new THREE.BoxGeometry(0.4, 1, 1.6), sofaMat);
+            armL.position.set(-1.9, 0.9, 0);
+            const armR = armL.clone();
+            armR.position.set(1.9, 0.9, 0);
+            const cushion1 = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.25, 1.3), sofaCushionMat);
+            cushion1.position.set(-1, 0.95, 0.05);
+            const cushion2 = cushion1.clone();
+            cushion2.position.set(1, 0.95, 0.05);
+            [base, back, armL, armR, cushion1, cushion2].forEach(m => { m.castShadow = true; group.add(m); });
+            group.position.set(x, 0, z);
+            group.rotation.y = rotY;
+            scene.add(group);
+        }
+        createSofa(-30, 20, Math.PI / 2);
+        createSofa(-30, 28, -Math.PI / 2);
+        createSofa(30, 20, -Math.PI / 2);
+        createSofa(30, 28, Math.PI / 2);
+
+        function createCoffeeTable(x, z) {
+            const group = new THREE.Group();
+            const top = new THREE.Mesh(new THREE.CylinderGeometry(1.3, 1.3, 0.15, 24), deskTopMat);
+            top.position.y = 1.0;
+            const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.2, 1, 12), wallTrimMat);
+            leg.position.y = 0.5;
+            [top, leg].forEach(m => { m.castShadow = true; group.add(m); });
+            group.position.set(x, 0, z);
+            scene.add(group);
+        }
+        createCoffeeTable(-30, 24);
+        createCoffeeTable(30, 24);
+
+        const rug1 = new THREE.Mesh(new THREE.CircleGeometry(4, 32), carpetMat);
+        rug1.rotation.x = -Math.PI / 2;
+        rug1.position.set(-30, 0.015, 24);
+        scene.add(rug1);
+        const rug2 = rug1.clone();
+        rug2.position.set(30, 0.015, 24);
+        scene.add(rug2);
+
+        // ==========================================================
+        // מעלית
+        // ==========================================================
+        function createElevator(x, z) {
+            const group = new THREE.Group();
+            const frame = new THREE.Mesh(new THREE.BoxGeometry(5, 8, 0.5), wallTrimMat);
+            frame.position.set(0, 4, 0);
+            const doorL = new THREE.Mesh(new THREE.BoxGeometry(2.15, 7, 0.2), elevatorDoorMat);
+            doorL.position.set(-1.1, 3.5, 0.3);
+            const doorR = doorL.clone();
+            doorR.position.set(1.1, 3.5, 0.3);
+            const panel = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.6, 0.1), new THREE.MeshStandardMaterial({ color: 0x222222 }));
+            panel.position.set(2.9, 4, 0.3);
+            [frame, doorL, doorR, panel].forEach(m => { m.castShadow = true; group.add(m); });
+            group.position.set(x, 0, z);
+            scene.add(group);
+        }
+        createElevator(-44.5, -20);
+        createElevator(-44.5, -25);
+
+        // ==========================================================
+        // מדרגות → קומה שנייה (מזנין)
+        // הוזזו קדימה (cz גדול יותר) כדי לפנות עומק גדול בהרבה במזנין
+        // כדי שיהיה מקום ל-10 חדרים נוספים
+        // ==========================================================
+        const STAIR = { cx: 30, cz: 5, steps: 14, stepH: 0.35, stepD: 1.1, width: 8 };
+        STAIR.totalRise = STAIR.steps * STAIR.stepH;
+        STAIR.totalRun = STAIR.steps * STAIR.stepD;
+
+        const MEZZ = { xMin: -40, xMax: 44, zMin: -44.4, zMax: STAIR.cz - STAIR.totalRun, height: STAIR.totalRise };
+
+        function createStaircase() {
+            const group = new THREE.Group();
+
+            for (let i = 0; i < STAIR.steps; i++) {
+                const step = new THREE.Mesh(new THREE.BoxGeometry(STAIR.width, STAIR.stepH, STAIR.stepD), marbleStairMat);
+                step.position.set(0, i * STAIR.stepH + STAIR.stepH / 2, -i * STAIR.stepD);
+                step.castShadow = true;
+                step.receiveShadow = true;
+                group.add(step);
+            }
+
+            const railHeight = 1.0;
+            const dir = new THREE.Vector3(0, STAIR.totalRise, -STAIR.totalRun).normalize();
+            const railLength = Math.sqrt(STAIR.totalRise ** 2 + STAIR.totalRun ** 2);
+
+            [-STAIR.width / 2 + 0.12, STAIR.width / 2 - 0.12].forEach(railX => {
+                for (let i = 0; i <= STAIR.steps; i += 2) {
+                    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, railHeight, 10), columnGoldMat);
+                    post.position.set(railX, i * STAIR.stepH + railHeight / 2, -i * STAIR.stepD);
+                    post.castShadow = true;
+                    group.add(post);
+                }
+                const handrail = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, railLength, 12), columnGoldMat);
+                handrail.position.set(railX, railHeight + STAIR.totalRise / 2, -STAIR.totalRun / 2);
+                handrail.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+                handrail.castShadow = true;
+                group.add(handrail);
+            });
+
+            group.position.set(STAIR.cx, 0, STAIR.cz);
+            scene.add(group);
+        }
+        createStaircase();
+
+        function createSign(text, x, y, z, rotY) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256; canvas.height = 96;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#2d1b4e';
+            ctx.fillRect(0, 0, 256, 96);
+            ctx.strokeStyle = '#d4af37'; ctx.lineWidth = 5; ctx.strokeRect(3, 3, 250, 90);
+            ctx.fillStyle = '#fbc531';
+            ctx.font = 'bold 28px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(text, 128, 48);
+            const texture = new THREE.CanvasTexture(canvas);
+            const plaque = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 0.9), new THREE.MeshStandardMaterial({ map: texture }));
+            plaque.position.set(x, y, z);
+            plaque.rotation.y = rotY;
+            scene.add(plaque);
+        }
+        createSign('⬆ לחדרים - קומה 2', STAIR.cx, 3, STAIR.cz + 0.3, 0);
+
+        // ==========================================================
+        // מזנין (קומה שנייה) + מעקה בטיחות עם פתח למדרגות
+        // ==========================================================
+        function createMezzanine() {
+            const w = MEZZ.xMax - MEZZ.xMin, d = MEZZ.zMax - MEZZ.zMin;
+            const cx = (MEZZ.xMin + MEZZ.xMax) / 2, cz = (MEZZ.zMin + MEZZ.zMax) / 2;
+
+            const platform = new THREE.Mesh(new THREE.BoxGeometry(w, 0.3, d), marbleStairMat);
+            platform.position.set(cx, MEZZ.height - 0.15, cz);
+            platform.castShadow = true;
+            platform.receiveShadow = true;
+            scene.add(platform);
+
+            for (let px = MEZZ.xMin + 2; px <= MEZZ.xMax - 2; px += 8) {
+                const support = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, MEZZ.height, 16), columnMat);
+                support.position.set(px, MEZZ.height / 2, MEZZ.zMax - 1);
+                support.castShadow = true;
+                scene.add(support);
+            }
+
+            const railGroup = new THREE.Group();
+            for (let px = MEZZ.xMin; px <= MEZZ.xMax; px += 2) {
+                if (px > STAIR.cx - STAIR.width / 2 - 1 && px < STAIR.cx + STAIR.width / 2 + 1) continue;
+                const post = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 1.1, 8), columnGoldMat);
+                post.position.set(px, MEZZ.height + 0.55, MEZZ.zMax);
+                railGroup.add(post);
+            }
+            const gapStart = STAIR.cx - STAIR.width / 2 - 1;
+            const gapEnd = STAIR.cx + STAIR.width / 2 + 1;
+            const railSegL = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, gapStart - MEZZ.xMin, 12), columnGoldMat);
+            railSegL.rotation.z = Math.PI / 2;
+            railSegL.position.set((MEZZ.xMin + gapStart) / 2, MEZZ.height + 1.05, MEZZ.zMax);
+            railGroup.add(railSegL);
+            const railSegR = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, MEZZ.xMax - gapEnd, 12), columnGoldMat);
+            railSegR.rotation.z = Math.PI / 2;
+            railSegR.position.set((gapEnd + MEZZ.xMax) / 2, MEZZ.height + 1.05, MEZZ.zMax);
+            railGroup.add(railSegR);
+            scene.add(railGroup);
+        }
+        createMezzanine();
+
+        function createNumberPlaque(number) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 128; canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#2d1b4e';
+            ctx.fillRect(0, 0, 128, 64);
+            ctx.strokeStyle = '#d4af37'; ctx.lineWidth = 4; ctx.strokeRect(2, 2, 124, 60);
+            ctx.fillStyle = '#d4af37';
+            ctx.font = 'bold 32px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(number, 64, 34);
+            const texture = new THREE.CanvasTexture(canvas);
+            return new THREE.Mesh(new THREE.PlaneGeometry(1.2, 0.6), new THREE.MeshStandardMaterial({ map: texture }));
+        }
+
+        // --- יצירת חדר מלון + מתאמי התנגשות אמיתיים לקירות הצדדיים שלו ---
+        function createHotelRoom(x, z, number, accentColor) {
+            const group = new THREE.Group();
+            const w = 7.4, d = 6, h = 4;
+
+            const leftWall = new THREE.Mesh(new THREE.BoxGeometry(0.3, h, d), roomWallMat);
+            leftWall.position.set(-w / 2, h / 2, 0);
+            const rightWall = leftWall.clone();
+            rightWall.position.set(w / 2, h / 2, 0);
+
+            const roomFloor = new THREE.Mesh(new THREE.BoxGeometry(w, 0.15, d), roomFloorMat);
+            roomFloor.position.set(0, 0.075, 0);
+
+            const bedFrame = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.5, 3), woodMat);
+            bedFrame.position.set(-w / 2 + 1.6, 0.4, -0.3);
+            const mattress = new THREE.Mesh(new THREE.BoxGeometry(2, 0.3, 2.8), mattressMat);
+            mattress.position.set(-w / 2 + 1.6, 0.75, -0.3);
+            const pillow = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.2, 0.6), new THREE.MeshStandardMaterial({ color: accentColor }));
+            pillow.position.set(-w / 2 + 1.6, 0.95, -1.5);
+
+            const nightstand = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.6), woodMat);
+            nightstand.position.set(-w / 2 + 0.5, 0.3, 1.4);
+
+            const doorFrame = new THREE.Mesh(new THREE.BoxGeometry(2.6, 3.2, 0.2), paintingFrameMat);
+            doorFrame.position.set(0, 1.6, d / 2 - 0.1);
+
+            const plaque = createNumberPlaque(number);
+            plaque.position.set(0, 3.6, d / 2);
+
+            const floorMarker = new THREE.Mesh(new THREE.CircleGeometry(2.4, 32), new THREE.MeshStandardMaterial({ color: accentColor, transparent: true, opacity: 0.25 }));
+            floorMarker.rotation.x = -Math.PI / 2;
+            floorMarker.position.set(0, 0.16, 0.2);
+
+            [leftWall, rightWall, roomFloor, bedFrame, mattress, pillow, nightstand, doorFrame].forEach(m => {
+                m.castShadow = true; m.receiveShadow = true; group.add(m);
+            });
+            group.add(plaque, floorMarker);
+            group.position.set(x, MEZZ.height, z);
+            scene.add(group);
+
+            // מתאמי התנגשות לקירות הצדדיים בקואורדינטות עולם (עובי מוגדל מעט לביטחון)
+            wallColliders.push({ xMin: x - w / 2 - 0.2, xMax: x - w / 2 + 0.2, zMin: z - d / 2, zMax: z + d / 2 });
+            wallColliders.push({ xMin: x + w / 2 - 0.2, xMax: x + w / 2 + 0.2, zMin: z - d / 2, zMax: z + d / 2 });
+        }
+        createHotelRoom(15, -41, '201', 0xd63031);
+        createHotelRoom(27, -41, '202', 0x0984e3);
+        createHotelRoom(39, -41, '203', 0x00b894);
+
+        // --- מיקומי חדרים ורשימת כל החדרים הקיימים (לצורך שיבוץ אורחים) ---
+        const roomPositions = {
+            '201': { x: 15, z: -41 },
+            '202': { x: 27, z: -41 },
+            '203': { x: 39, z: -41 },
+        };
+        const allRoomNumbers = ['201', '202', '203'];
+        const occupiedRooms = new Set();
+        const dirtyRooms = new Map(); // מספר חדר -> מערך מקומות מלוכלכים באותו חדר
+
+        // ==========================================================
+        // ציורים
+        // ==========================================================
+        function createPainting(x, y, z, rotY, color) {
+            const group = new THREE.Group();
+            const frame = new THREE.Mesh(new THREE.BoxGeometry(3.2, 4.2, 0.15), paintingFrameMat);
+            const canvas = new THREE.Mesh(new THREE.PlaneGeometry(2.8, 3.8), new THREE.MeshStandardMaterial({ color: color, roughness: 0.9 }));
+            canvas.position.z = 0.08;
+            group.add(frame, canvas);
+            group.position.set(x, y, z);
+            group.rotation.y = rotY;
+            scene.add(group);
+        }
+        createPainting(-15, 9, -44.7, 0, 0xd6a35a);
+        createPainting(-44.7, 9, 10, Math.PI / 2, 0x9fbf8f);
+        createPainting(44.7, 9, 10, -Math.PI / 2, 0xd6a35a);
+
+        // ==========================================================
+        // נברשות ותאורת קיר
+        // ==========================================================
+        function createChandelier(x, z) {
+            const group = new THREE.Group();
+            const chain = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 3, 8), chandelierMat);
+            chain.position.y = 14.4;
+            const ringTop = new THREE.Mesh(new THREE.TorusGeometry(1.5, 0.08, 8, 24), chandelierMat);
+            ringTop.rotation.x = Math.PI / 2;
+            ringTop.position.y = 12.8;
+            const ringBottom = new THREE.Mesh(new THREE.TorusGeometry(1.0, 0.06, 8, 24), chandelierMat);
+            ringBottom.rotation.x = Math.PI / 2;
+            ringBottom.position.y = 11.8;
+            group.add(chain, ringTop, ringBottom);
+
+            for (let i = 0; i < 8; i++) {
+                const angle = (i / 8) * Math.PI * 2;
+                const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.15, 8, 8), new THREE.MeshStandardMaterial({ color: 0xfff2c0, emissive: 0xffdd88, emissiveIntensity: 0.8 }));
+                bulb.position.set(Math.cos(angle) * 1.5, 12.6, Math.sin(angle) * 1.5);
+                group.add(bulb);
+            }
+            const light = new THREE.PointLight(0xffdca8, 0.9, 25);
+            light.position.y = 12.5;
+            group.add(light);
+
+            group.position.set(x, 0, z);
+            scene.add(group);
+        }
+        createChandelier(0, -2);
+        createChandelier(0, 10);
+        createChandelier(-25, -25);
+        createChandelier(15, -35);
+
+        function createWallSconce(x, y, z, rotY) {
+            const group = new THREE.Group();
+            const base = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.3, 8), chandelierMat);
+            base.rotation.z = Math.PI / 2;
+            const shade = new THREE.Mesh(new THREE.ConeGeometry(0.25, 0.4, 8, 1, true), new THREE.MeshStandardMaterial({ color: 0xfff2c0, emissive: 0xffcc66, emissiveIntensity: 0.6, side: THREE.DoubleSide }));
+            shade.rotation.x = Math.PI;
+            shade.position.x = 0.3;
+            group.add(base, shade);
+            const light = new THREE.PointLight(0xffcc88, 0.4, 10);
+            light.position.x = 0.3;
+            group.add(light);
+            group.position.set(x, y, z);
+            group.rotation.y = rotY;
+            scene.add(group);
+        }
+        for (let i = -30; i <= 30; i += 20) {
+            createWallSconce(-44.5, 7, i, Math.PI / 2);
+            createWallSconce(44.5, 7, i, -Math.PI / 2);
+        }
+
+        // ==========================================================
+        // מערכת גובה קרקע
+        // ==========================================================
+        function getFloorHeight(x, z) {
+            if (x > STAIR.cx - STAIR.width / 2 && x < STAIR.cx + STAIR.width / 2 &&
+                z <= STAIR.cz && z >= STAIR.cz - STAIR.totalRun) {
+                const t = (STAIR.cz - z) / STAIR.totalRun;
+                return t * STAIR.totalRise;
+            }
+            if (x > MEZZ.xMin && x < MEZZ.xMax && z > MEZZ.zMin && z < MEZZ.zMax) {
+                return MEZZ.height;
+            }
+            return 0;
+        }
+
+        // ==========================================================
+        // דמות השחקן (ללא שינוי - בדיוק לפי המקור)
+        // ==========================================================
+        const playerGroup = new THREE.Group();
+
+        const redSuitMat = new THREE.MeshStandardMaterial({ color: 0xe84118, roughness: 0.5 });
+        const purplePantsMat = new THREE.MeshStandardMaterial({ color: 0x4c274c, roughness: 0.5 });
+        const skinMat = new THREE.MeshStandardMaterial({ color: 0xffcd94, roughness: 0.6 });
+        const goldMat = new THREE.MeshStandardMaterial({ color: 0xfbc531, metalness: 0.5, roughness: 0.2 });
+
+        const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.7, 1.6, 16), redSuitMat);
+        torso.position.y = 2.0;
+        torso.castShadow = true;
+        playerGroup.add(torso);
+
+        const collar = new THREE.Mesh(new THREE.TorusGeometry(0.4, 0.08, 8, 16, Math.PI), goldMat);
+        collar.rotation.x = Math.PI / 2;
+        collar.position.set(0, 2.7, 0.2);
+        playerGroup.add(collar);
+
+        const buttonGeo = new THREE.SphereGeometry(0.08, 8, 8);
+        const b1 = new THREE.Mesh(buttonGeo, goldMat); b1.position.set(0.15, 2.2, 0.65);
+        const b2 = new THREE.Mesh(buttonGeo, goldMat); b2.position.set(-0.15, 2.2, 0.65);
+        const b3 = new THREE.Mesh(buttonGeo, goldMat); b3.position.set(0.15, 1.9, 0.65);
+        const b4 = new THREE.Mesh(buttonGeo, goldMat); b4.position.set(-0.15, 1.9, 0.65);
+        playerGroup.add(b1, b2, b3, b4);
+
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.65, 32, 32), skinMat);
+        head.position.y = 3.3;
+        head.scale.set(1, 1.1, 1);
+        head.castShadow = true;
+        playerGroup.add(head);
+
+        const hatGroup = new THREE.Group();
+        const hatBase = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.4, 24), redSuitMat);
+        const hatGoldLine = new THREE.Mesh(new THREE.CylinderGeometry(0.51, 0.51, 0.08, 24), goldMat);
+        hatGoldLine.position.y = -0.1;
+        hatGroup.add(hatBase, hatGoldLine);
+        hatGroup.position.set(0, 3.9, 0);
+        hatGroup.rotation.x = 0.1;
+        playerGroup.add(hatGroup);
+
+        const legGeo = new THREE.CylinderGeometry(0.2, 0.2, 1.1, 16);
+        const leftLeg = new THREE.Mesh(legGeo, purplePantsMat);
+        leftLeg.position.set(-0.25, 0.75, 0);
+        leftLeg.castShadow = true;
+        playerGroup.add(leftLeg);
+
+        const rightLeg = new THREE.Mesh(legGeo, purplePantsMat);
+        rightLeg.position.set(0.25, 0.75, 0);
+        rightLeg.castShadow = true;
+        playerGroup.add(rightLeg);
+
+        const shoeGeo = new THREE.SphereGeometry(0.25, 16, 16);
+        const leftShoe = new THREE.Mesh(shoeGeo, redSuitMat);
+        leftShoe.position.set(-0.25, 0.2, 0.1);
+        leftShoe.scale.set(1, 0.8, 1.4);
+        const rightShoe = new THREE.Mesh(shoeGeo, redSuitMat);
+        rightShoe.position.set(0.25, 0.2, 0.1);
+        rightShoe.scale.set(1, 0.8, 1.4);
+        playerGroup.add(leftShoe, rightShoe);
+
+        const armGeo = new THREE.CylinderGeometry(0.15, 0.15, 1.1, 16);
+        const leftArm = new THREE.Mesh(armGeo, redSuitMat);
+        leftArm.position.set(-0.85, 2.0, 0);
+        leftArm.rotation.z = 0.05;
+
+        const leftHand = new THREE.Mesh(new THREE.SphereGeometry(0.14, 8, 8), skinMat);
+        leftHand.position.set(-0.85, 1.4, 0);
+
+        const rightArm = new THREE.Mesh(armGeo, redSuitMat);
+        rightArm.position.set(0.85, 2.0, 0);
+        rightArm.rotation.z = -0.05;
+
+        const rightHand = new THREE.Mesh(new THREE.SphereGeometry(0.14, 8, 8), skinMat);
+        rightHand.position.set(0.85, 1.4, 0);
+
+        playerGroup.add(leftArm, leftHand, rightArm, rightHand);
+
+        playerGroup.position.set(0, 0, 10);
+        scene.add(playerGroup);
+
+        let promptTimeout;
+
+        function showPrompt(msg) {
+            const el = document.getElementById('hud-message');
+            el.textContent = msg;
+            el.classList.add('show');
+            clearTimeout(promptTimeout);
+            promptTimeout = setTimeout(() => el.classList.remove('show'), 2800);
+        }
+
+        function horizontalDist(a, b) {
+            const dx = a.x - b.x, dz = a.z - b.z;
+            return Math.sqrt(dx * dx + dz * dz);
+        }
+
+        // ==========================================================
+        // מערכת כסף
+        // ==========================================================
+        let money = 0;
+        function updateMoneyUI() {
+            document.getElementById('money-value').textContent = money;
+        }
+        function addMoney(amount) {
+            money += amount;
+            updateMoneyUI();
+            saveGame();
+        }
+        function spendMoney(amount) {
+            if (money < amount) return false;
+            money -= amount;
+            updateMoneyUI();
+            saveGame();
+            return true;
+        }
+        updateMoneyUI();
+
+        // ==========================================================
+        // חדרים לרכישה בקומה השנייה (10 חדרים נוספים)
+        // כל חדר עולה 50 יותר מהתוספת של החדר הקודם: 50, 100, 200, 350, 550...
+        // רק המחיר של החדר הבא בתור מוצג על הרצפה
+        // ==========================================================
+        const purchasableRoomPrices = (() => {
+            const arr = [];
+            let prev = 0;
+            for (let n = 1; n <= 10; n++) {
+                const price = n === 1 ? 50 : prev + 50 * (n - 1);
+                arr.push(price);
+                prev = price;
+            }
+            return arr;
+        })();
+
+        const newRoomSlots = [
+            { x: 3, z: -41, number: '204' },
+            { x: -9, z: -41, number: '205' },
+            { x: -21, z: -41, number: '206' },
+            { x: -33, z: -41, number: '207' },
+            { x: 3, z: -31, number: '208' },
+            { x: -9, z: -31, number: '209' },
+            { x: -21, z: -31, number: '210' },
+            { x: -33, z: -31, number: '211' },
+            { x: 15, z: -31, number: '212' },
+            { x: 27, z: -31, number: '213' },
+        ].map((slot, i) => ({ ...slot, price: purchasableRoomPrices[i], purchased: false, tile: null }));
+
+        function createPriceTile(price) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256; canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = 'rgba(45,27,78,0.85)';
+            ctx.fillRect(0, 0, 256, 256);
+            ctx.strokeStyle = '#d4af37'; ctx.lineWidth = 8;
+            ctx.strokeRect(6, 6, 244, 244);
+            ctx.fillStyle = '#fbc531';
+            ctx.font = 'bold 42px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('💵', 128, 90);
+            ctx.font = 'bold 34px Arial';
+            ctx.fillText(price + '', 128, 150);
+            ctx.font = 'bold 20px Arial';
+            ctx.fillText('לחץ E לקנייה', 128, 200);
+            const texture = new THREE.CanvasTexture(canvas);
+            const tile = new THREE.Mesh(new THREE.PlaneGeometry(6, 6), new THREE.MeshStandardMaterial({ map: texture, transparent: true }));
+            tile.rotation.x = -Math.PI / 2;
+            return tile;
+        }
+
+        newRoomSlots.forEach((slot, i) => {
+            const tile = createPriceTile(slot.price);
+            tile.position.set(slot.x, MEZZ.height + 0.05, slot.z);
+            tile.visible = (i === 0); // רק החדר הבא בתור מוצג
+            scene.add(tile);
+            slot.tile = tile;
+        });
+
+        function buildPurchasedRoom(slot) {
+            const colors = [0xd63031, 0x0984e3, 0x00b894, 0xe17055, 0x6c5ce7, 0xfdcb6e, 0x00cec9, 0xe84393, 0x636e72, 0x0fb9b1];
+            const accent = colors[Math.floor(Math.random() * colors.length)];
+            createHotelRoom(slot.x, slot.z, slot.number, accent);
+            roomPositions[slot.number] = { x: slot.x, z: slot.z };
+            allRoomNumbers.push(slot.number);
+        }
+
+        function tryPurchaseNextRoom() {
+            const nextSlot = newRoomSlots.find(s => !s.purchased);
+            if (!nextSlot) return;
+            if (horizontalDist(playerGroup.position, { x: nextSlot.x, z: nextSlot.z }) >= 4) return;
+            if (spendMoney(nextSlot.price)) {
+                nextSlot.purchased = true;
+                nextSlot.tile.visible = false;
+                buildPurchasedRoom(nextSlot);
+                showPrompt(`נרכש חדר ${nextSlot.number}! 🎉`);
+                const idx = newRoomSlots.indexOf(nextSlot);
+                if (newRoomSlots[idx + 1]) newRoomSlots[idx + 1].tile.visible = true;
+                saveGame();
+            } else {
+                showPrompt(`אין מספיק כסף לקניית חדר ${nextSlot.number}! חסר לך ${nextSlot.price - money} 💵`);
+            }
+        }
+
+        // ==========================================================
+        // מנקות (עוזרות ניקיון) - נקנות ליד המדרגות בקומה 2, מנקות חדרים אוטומטית
+        // ==========================================================
+        function createCleanerMesh() {
+            const group = new THREE.Group();
+            const jacketMat = new THREE.MeshStandardMaterial({ color: 0x6fb3ad, roughness: 0.6 });
+            const dressMat = new THREE.MeshStandardMaterial({ color: 0x546a80, roughness: 0.6 });
+            const hairMat = new THREE.MeshStandardMaterial({ color: 0x6b4423, roughness: 0.7 });
+            const shoeMat = new THREE.MeshStandardMaterial({ color: 0xa9704a, roughness: 0.6 });
+
+            const body = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.4, 1.2, 12), jacketMat);
+            body.position.y = 1.05;
+            body.castShadow = true;
+            const dressPanel = new THREE.Mesh(new THREE.BoxGeometry(0.24, 1.0, 0.06), dressMat);
+            dressPanel.position.set(0, 1.0, 0.32);
+            group.add(body, dressPanel);
+
+            const legGeo = new THREE.CylinderGeometry(0.15, 0.15, 0.85, 10);
+            const leftLeg = new THREE.Mesh(legGeo, dressMat);
+            leftLeg.position.set(-0.16, 0.42, 0);
+            const rightLeg = new THREE.Mesh(legGeo, dressMat);
+            rightLeg.position.set(0.16, 0.42, 0);
+            group.add(leftLeg, rightLeg);
+
+            const shoeGeo = new THREE.BoxGeometry(0.22, 0.18, 0.32);
+            const leftShoe = new THREE.Mesh(shoeGeo, shoeMat);
+            leftShoe.position.set(-0.16, 0.09, 0.05);
+            const rightShoe = new THREE.Mesh(shoeGeo, shoeMat);
+            rightShoe.position.set(0.16, 0.09, 0.05);
+            group.add(leftShoe, rightShoe);
+
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 16), skinMat);
+            head.position.y = 1.85;
+            head.castShadow = true;
+            group.add(head);
+
+            const hairCap = new THREE.Mesh(new THREE.SphereGeometry(0.33, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.6), hairMat);
+            hairCap.position.y = 1.92;
+            group.add(hairCap);
+            const hairBack = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.2, 0.5, 12), hairMat);
+            hairBack.position.set(0, 1.62, -0.08);
+            group.add(hairBack);
+
+            // מטלית צהובה ביד שמאל
+            const duster = new THREE.Mesh(new THREE.SphereGeometry(0.14, 8, 8), new THREE.MeshStandardMaterial({ color: 0xf1c40f, roughness: 0.9 }));
+            duster.scale.set(1, 1.4, 0.7);
+            duster.position.set(-0.42, 0.75, 0.15);
+            group.add(duster);
+
+            // דלי אפור ביד ימין
+            const bucket = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.11, 0.22, 12), new THREE.MeshStandardMaterial({ color: 0x9aa0a6, roughness: 0.5, metalness: 0.2 }));
+            bucket.position.set(0.42, 0.65, 0.1);
+            group.add(bucket);
+
+            group.scale.set(1.9, 1.9, 1.9);
+            return group;
+        }
+
+        function createCleanerPriceTile(price) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256; canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = 'rgba(20,50,60,0.85)';
+            ctx.fillRect(0, 0, 256, 256);
+            ctx.strokeStyle = '#3ec6ff'; ctx.lineWidth = 8;
+            ctx.strokeRect(6, 6, 244, 244);
+            ctx.fillStyle = '#3ec6ff';
+            ctx.font = 'bold 40px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('🧹', 128, 78);
+            ctx.font = 'bold 30px Arial';
+            ctx.fillText('מנקה', 128, 128);
+            ctx.fillStyle = '#fbc531';
+            ctx.font = 'bold 28px Arial';
+            ctx.fillText('💵 ' + price, 128, 170);
+            ctx.fillStyle = '#3ec6ff';
+            ctx.font = 'bold 18px Arial';
+            ctx.fillText('לחץ E לקנייה', 128, 205);
+            const texture = new THREE.CanvasTexture(canvas);
+            const tile = new THREE.Mesh(new THREE.PlaneGeometry(5, 5), new THREE.MeshStandardMaterial({ map: texture, transparent: true }));
+            tile.rotation.x = -Math.PI / 2;
+            return tile;
+        }
+
+        const cleaners = [];
+        const roomsBeingCleaned = new Set();
+
+        const cleanerSlots = [
+            { x: STAIR.cx, z: -16 },
+            { x: STAIR.cx, z: -19 },
+            { x: STAIR.cx, z: -22 },
+            { x: STAIR.cx, z: -25 },
+            { x: STAIR.cx, z: -28 },
+        ].map((slot, i) => ({ ...slot, price: 100 * (i + 1), purchased: false, tile: null }));
+
+        cleanerSlots.forEach((slot, i) => {
+            const tile = createCleanerPriceTile(slot.price);
+            tile.position.set(slot.x, MEZZ.height + 0.05, slot.z);
+            tile.visible = (i === 0);
+            scene.add(tile);
+            slot.tile = tile;
+        });
+
+        function hireCleaner(slot) {
+            const mesh = createCleanerMesh();
+            mesh.position.set(slot.x, MEZZ.height, slot.z);
+            scene.add(mesh);
+            cleaners.push({
+                mesh, state: 'idle', path: null, pathIndex: 0, timer: 0, targetRoom: null,
+                searchCooldown: 0, homePos: { x: slot.x, z: slot.z },
+            });
+        }
+
+        function tryPurchaseNextCleaner() {
+            const nextSlot = cleanerSlots.find(s => !s.purchased);
+            if (!nextSlot) return;
+            if (horizontalDist(playerGroup.position, { x: nextSlot.x, z: nextSlot.z }) >= 4) return;
+            if (spendMoney(nextSlot.price)) {
+                nextSlot.purchased = true;
+                nextSlot.tile.visible = false;
+                hireCleaner(nextSlot);
+                showPrompt('נשכרה מנקה חדשה! 🧹');
+                const idx = cleanerSlots.indexOf(nextSlot);
+                if (cleanerSlots[idx + 1]) cleanerSlots[idx + 1].tile.visible = true;
+                saveGame();
+            } else {
+                showPrompt(`אין מספיק כסף לשכירת מנקה! חסר לך ${nextSlot.price - money} 💵`);
+            }
+        }
+
+        function updateCleaners(delta) {
+            cleaners.forEach(c => {
+                if (c.state === 'idle') {
+                    let targetRoom = null;
+                    dirtyRooms.forEach((spots, room) => {
+                        if (targetRoom || roomsBeingCleaned.has(room)) return;
+                        targetRoom = room;
+                    });
+                    if (targetRoom && roomPositions[targetRoom]) {
+                        roomsBeingCleaned.add(targetRoom);
+                        c.targetRoom = targetRoom;
+                        const roomPos = roomPositions[targetRoom];
+                        c.path = [{ x: roomPos.x, z: roomPos.z }];
+                        c.pathIndex = 0;
+                        c.state = 'toRoom';
+                        showPrompt(`המנקה יוצאת לנקות את חדר ${targetRoom}! 🧹`);
+                    }
+                } else if (c.state === 'toRoom' || c.state === 'toHome') {
+                    const wp = c.path[c.pathIndex];
+                    const dir = new THREE.Vector3(wp.x - c.mesh.position.x, 0, wp.z - c.mesh.position.z);
+                    const dist = dir.length();
+                    const targetY = getFloorHeight(c.mesh.position.x, c.mesh.position.z);
+                    c.mesh.position.y += (targetY - c.mesh.position.y) * 0.15;
+                    if (dist < 0.4) {
+                        c.pathIndex++;
+                        if (c.pathIndex >= c.path.length) {
+                            if (c.state === 'toRoom') {
+                                c.state = 'cleaning';
+                                c.timer = 4;
+                            } else {
+                                c.state = 'idle';
+                            }
+                        }
+                    } else {
+                        dir.normalize();
+                        c.mesh.position.addScaledVector(dir, Math.min(0.09, dist));
+                        c.mesh.rotation.y = Math.atan2(dir.x, dir.z);
+                    }
+                } else if (c.state === 'cleaning') {
+                    c.timer -= delta;
+                    if (c.timer <= 0) {
+                        const room = c.targetRoom;
+                        const spots = dirtyRooms.get(room);
+                        if (spots) {
+                            spots.forEach(s => { if (!s.cleaned) { s.cleaned = true; scene.remove(s.mesh); } });
+                            dirtyRooms.delete(room);
+                            showPrompt(`המנקה סיימה לנקות את חדר ${room}! ✨`);
+                        }
+                        roomsBeingCleaned.delete(room);
+                        c.targetRoom = null;
+                        c.path = [{ x: c.homePos.x, z: c.homePos.z }];
+                        c.pathIndex = 0;
+                        c.state = 'toHome';
+                    }
+                }
+            });
+        }
+
+        // ==========================================================
+        // פקידי קבלה - עד 3 בלבד (150, 300, 450), כל אחד מטפל באורח תוך 3 שניות
+        // כמה פקידים עובדים במקביל, כל אחד על אורח אחר
+        // ==========================================================
+        function createReceptionistMesh() {
+            const group = new THREE.Group();
+            const blazerMat = new THREE.MeshStandardMaterial({ color: 0x2d1b4e, roughness: 0.55 });
+            const shirtMat = new THREE.MeshStandardMaterial({ color: 0xf1f2f6, roughness: 0.6 });
+            const pantsMat = new THREE.MeshStandardMaterial({ color: 0x22252b, roughness: 0.6 });
+            const shoeMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.5 });
+            const hairColors = [0x2b1b12, 0x4a2e18, 0x6b4423, 0x1c1c1c];
+            const hairMat = new THREE.MeshStandardMaterial({ color: hairColors[Math.floor(Math.random() * hairColors.length)], roughness: 0.7 });
+
+            const body = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.4, 1.2, 12), blazerMat);
+            body.position.y = 1.05;
+            body.castShadow = true;
+            const shirtPanel = new THREE.Mesh(new THREE.BoxGeometry(0.22, 1.0, 0.05), shirtMat);
+            shirtPanel.position.set(0, 1.05, 0.32);
+            group.add(body, shirtPanel);
+
+            const badgeMat = new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.6, roughness: 0.3 });
+            const badge = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.16, 0.02), badgeMat);
+            badge.position.set(0.2, 1.3, 0.36);
+            group.add(badge);
+
+            const legGeo = new THREE.CylinderGeometry(0.15, 0.15, 0.85, 10);
+            const leftLeg = new THREE.Mesh(legGeo, pantsMat);
+            leftLeg.position.set(-0.16, 0.42, 0);
+            const rightLeg = new THREE.Mesh(legGeo, pantsMat);
+            rightLeg.position.set(0.16, 0.42, 0);
+            group.add(leftLeg, rightLeg);
+
+            const shoeGeo = new THREE.BoxGeometry(0.22, 0.18, 0.32);
+            const leftShoe = new THREE.Mesh(shoeGeo, shoeMat);
+            leftShoe.position.set(-0.16, 0.09, 0.05);
+            const rightShoe = new THREE.Mesh(shoeGeo, shoeMat);
+            rightShoe.position.set(0.16, 0.09, 0.05);
+            group.add(leftShoe, rightShoe);
+
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 16), skinMat);
+            head.position.y = 1.85;
+            head.castShadow = true;
+            group.add(head);
+
+            const hairCap = new THREE.Mesh(new THREE.SphereGeometry(0.31, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.6), hairMat);
+            hairCap.position.y = 1.9;
+            group.add(hairCap);
+
+            group.scale.set(1.9, 1.9, 1.9);
+            return group;
+        }
+
+        function createReceptionistPriceTile(price) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256; canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = 'rgba(45,27,78,0.85)';
+            ctx.fillRect(0, 0, 256, 256);
+            ctx.strokeStyle = '#d4af37'; ctx.lineWidth = 8;
+            ctx.strokeRect(6, 6, 244, 244);
+            ctx.fillStyle = '#fbc531';
+            ctx.font = 'bold 40px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('🧑‍💼', 128, 78);
+            ctx.font = 'bold 26px Arial';
+            ctx.fillText('פקיד קבלה', 128, 128);
+            ctx.font = 'bold 28px Arial';
+            ctx.fillText('💵 ' + price, 128, 170);
+            ctx.font = 'bold 18px Arial';
+            ctx.fillText('לחץ E לשכירה', 128, 205);
+            const texture = new THREE.CanvasTexture(canvas);
+            const tile = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 2.4), new THREE.MeshStandardMaterial({ map: texture, transparent: true }));
+            tile.rotation.x = -Math.PI / 2;
+            return tile;
+        }
+
+        const receptionists = [];
+        const receptionistSlots = [
+            { x: -4, z: -4.3, price: 150, purchased: false, tile: null },
+            { x: 0, z: -4.3, price: 300, purchased: false, tile: null },
+            { x: 4, z: -4.3, price: 450, purchased: false, tile: null },
+        ];
+
+        receptionistSlots.forEach((slot, i) => {
+            const tile = createReceptionistPriceTile(slot.price);
+            tile.position.set(slot.x, 0.05, slot.z);
+            tile.visible = (i === 0);
+            scene.add(tile);
+            slot.tile = tile;
+        });
+
+        function hireReceptionist(slot) {
+            const mesh = createReceptionistMesh();
+            mesh.position.set(slot.x, 0, slot.z);
+            mesh.rotation.y = Math.PI; // פונה לכיוון האורחים
+            scene.add(mesh);
+            receptionists.push({ mesh, state: 'idle', timer: 0, guest: null, room: null });
+        }
+
+        function tryPurchaseNextReceptionist() {
+            const nextSlot = receptionistSlots.find(s => !s.purchased);
+            if (!nextSlot) return;
+            if (horizontalDist(playerGroup.position, { x: nextSlot.x, z: nextSlot.z }) >= 4) return;
+            if (spendMoney(nextSlot.price)) {
+                nextSlot.purchased = true;
+                nextSlot.tile.visible = false;
+                hireReceptionist(nextSlot);
+                showPrompt('נשכר פקיד קבלה חדש! 🧑‍💼');
+                const idx = receptionistSlots.indexOf(nextSlot);
+                if (receptionistSlots[idx + 1]) receptionistSlots[idx + 1].tile.visible = true;
+                saveGame();
+            } else {
+                showPrompt(`אין מספיק כסף לשכירת פקיד קבלה! חסר לך ${nextSlot.price - money} 💵`);
+            }
+        }
+
+        function updateReceptionists(delta) {
+            receptionists.forEach(r => {
+                if (r.state === 'idle') {
+                    const freeRoom = allRoomNumbers.find(rm => !occupiedRooms.has(rm) && !dirtyRooms.has(rm));
+                    if (!freeRoom) return;
+                    const guest = guests.find(g => g.state === 'waitingAtDesk' && !g.beingHandled);
+                    if (!guest) return;
+                    guest.beingHandled = true;
+                    occupiedRooms.add(freeRoom);
+                    const dqIdx = deskQueue.indexOf(guest);
+                    if (dqIdx !== -1) deskQueue.splice(dqIdx, 1);
+                    r.guest = guest;
+                    r.room = freeRoom;
+                    r.timer = 3;
+                    r.state = 'processing';
+                } else if (r.state === 'processing') {
+                    r.timer -= delta;
+                    if (r.timer <= 0) {
+                        const roomIndex = allRoomNumbers.indexOf(r.room);
+                        const payment = 25 + roomIndex * 8 + Math.floor(Math.random() * 10);
+                        addMoney(payment);
+                        showPrompt(`פקיד הקבלה נתן חדר ${r.room} לאורח! +${payment} 💵`);
+                        guestsServedCount++;
+                        saveGame();
+                        r.guest.room = r.room;
+                        r.guest.path = buildPathToRoom(r.room);
+                        r.guest.pathIndex = 0;
+                        r.guest.state = 'toRoom';
+                        r.guest = null;
+                        r.room = null;
+                        r.state = 'idle';
+                    }
+                }
+            });
+        }
+
+        // קצב הגעת האורחים - מתחיל איטי יחסית, ועולה מעט עם כל אורח שקיבל חדר,
+        // עד לקצב המקסימלי (המהיר) שכבר קיים במשחק. ההתקדמות נשמרת גם אחרי רענון.
+        const RATE_START_MIN = 5, RATE_START_MAX = 7;      // קצב התחלתי (איטי)
+        const RATE_END_MIN = 1.2, RATE_END_MAX = 2.0;      // קצב מקסימלי (המהיר שהיה)
+        const RATE_PROGRESS_GUESTS = 40;                    // אחרי כמה אורחים שהתקבלו מגיעים לקצב המקסימלי
+        let guestsServedCount = 0;
+
+        function nextGuestSpawnDelay() {
+            const t = Math.min(1, guestsServedCount / RATE_PROGRESS_GUESTS);
+            const minI = RATE_START_MIN + (RATE_END_MIN - RATE_START_MIN) * t;
+            const maxI = RATE_START_MAX + (RATE_END_MAX - RATE_START_MAX) * t;
+            return minI + Math.random() * (maxI - minI);
+        }
+
+        // ==========================================================
+        // שמירת התקדמות (localStorage) - נשמר גם אחרי רענון וגם אחרי סגירת הדפדפן
+        // ==========================================================
+        const SAVE_KEY = 'hotelGomaSave_v1';
+
+        function saveGame() {
+            try {
+                const state = {
+                    money,
+                    purchasedRooms: newRoomSlots.map(s => s.purchased),
+                    purchasedCleaners: cleanerSlots.map(s => s.purchased),
+                    purchasedReceptionists: receptionistSlots.map(s => s.purchased),
+                    guestsServedCount,
+                };
+                localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+            } catch (e) {
+                console.warn('שמירת המשחק נכשלה', e);
+            }
+        }
+
+        function loadGame() {
+            try {
+                const raw = localStorage.getItem(SAVE_KEY);
+                if (!raw) return;
+                const state = JSON.parse(raw);
+
+                if (typeof state.money === 'number') {
+                    money = state.money;
+                    updateMoneyUI();
+                }
+
+                if (typeof state.guestsServedCount === 'number') {
+                    guestsServedCount = state.guestsServedCount;
+                }
+
+                if (Array.isArray(state.purchasedRooms)) {
+                    state.purchasedRooms.forEach((purchased, i) => {
+                        if (purchased && newRoomSlots[i] && !newRoomSlots[i].purchased) {
+                            newRoomSlots[i].purchased = true;
+                            newRoomSlots[i].tile.visible = false;
+                            buildPurchasedRoom(newRoomSlots[i]);
+                        }
+                    });
+                    const nextSlot = newRoomSlots.find(s => !s.purchased);
+                    newRoomSlots.forEach(s => { if (!s.purchased) s.tile.visible = false; });
+                    if (nextSlot) nextSlot.tile.visible = true;
+                }
+
+                if (Array.isArray(state.purchasedCleaners)) {
+                    state.purchasedCleaners.forEach((purchased, i) => {
+                        if (purchased && cleanerSlots[i] && !cleanerSlots[i].purchased) {
+                            cleanerSlots[i].purchased = true;
+                            cleanerSlots[i].tile.visible = false;
+                            hireCleaner(cleanerSlots[i]);
+                        }
+                    });
+                    const nextCleanerSlot = cleanerSlots.find(s => !s.purchased);
+                    cleanerSlots.forEach(s => { if (!s.purchased) s.tile.visible = false; });
+                    if (nextCleanerSlot) nextCleanerSlot.tile.visible = true;
+                }
+
+                if (Array.isArray(state.purchasedReceptionists)) {
+                    state.purchasedReceptionists.forEach((purchased, i) => {
+                        if (purchased && receptionistSlots[i] && !receptionistSlots[i].purchased) {
+                            receptionistSlots[i].purchased = true;
+                            receptionistSlots[i].tile.visible = false;
+                            hireReceptionist(receptionistSlots[i]);
+                        }
+                    });
+                    const nextReceptionistSlot = receptionistSlots.find(s => !s.purchased);
+                    receptionistSlots.forEach(s => { if (!s.purchased) s.tile.visible = false; });
+                    if (nextReceptionistSlot) nextReceptionistSlot.tile.visible = true;
+                }
+            } catch (e) {
+                console.warn('טעינת המשחק נכשלה', e);
+            }
+        }
+
+        loadGame();
+        setInterval(saveGame, 5000); // גיבוי תקופתי, ליתר ביטחון
+        window.addEventListener('beforeunload', saveGame);
+
+        // ==========================================================
+        // אורחים (בוטים) - מגיעים לקבלה, מקבלים חדר, ישנים 6 שניות, יוצאים
+        // ==========================================================
+        function createGuestMesh() {
+            // ארבע דמויות קבועות (2 גברים, 2 נשים) - לכל אורח נבחרת אחת אקראית
+            const variants = [
+                { jacket: 0x9aa1ac, shirt: 0x7c8f52, hair: 0x5c3a21, jeans: 0x35455c, shoe: 0x8a5a35, hairType: 'short' },   // תמונה 1
+                { jacket: 0x9aa1ac, shirt: 0x7c8f52, hair: 0x6b4226, jeans: 0x35455c, shoe: 0x8a5a35, hairType: 'shoulder' }, // תמונה 2
+                { jacket: 0x9aa1ac, shirt: 0x7c8f52, hair: 0x7a5230, jeans: 0x35455c, shoe: 0xc9975f, hairType: 'messy' },   // תמונה 3
+                { jacket: 0x707c89, shirt: 0x7c8f52, hair: 0x5c3a21, jeans: 0x35455c, shoe: 0xc9975f, hairType: 'bob' },     // תמונה 4
+            ];
+            const v = variants[Math.floor(Math.random() * variants.length)];
+
+            const group = new THREE.Group();
+            const jacketMat = new THREE.MeshStandardMaterial({ color: v.jacket, roughness: 0.6 });
+            const shirtMat = new THREE.MeshStandardMaterial({ color: v.shirt, roughness: 0.6 });
+            const jeansMat = new THREE.MeshStandardMaterial({ color: v.jeans, roughness: 0.7 });
+            const shoeMat = new THREE.MeshStandardMaterial({ color: v.shoe, roughness: 0.6 });
+            const hairMat = new THREE.MeshStandardMaterial({ color: v.hair, roughness: 0.7 });
+
+            // גוף - מעיל פתוח עם פס חולצה נראה מלפנים
+            const body = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.4, 1.2, 12), jacketMat);
+            body.position.y = 1.05;
+            body.castShadow = true;
+            const shirtPanel = new THREE.Mesh(new THREE.BoxGeometry(0.22, 1.0, 0.05), shirtMat);
+            shirtPanel.position.set(0, 1.05, 0.32);
+            group.add(body, shirtPanel);
+
+            // רגליים - ג'ינס
+            const legGeo = new THREE.CylinderGeometry(0.15, 0.15, 0.85, 10);
+            const leftLeg = new THREE.Mesh(legGeo, jeansMat);
+            leftLeg.position.set(-0.16, 0.42, 0);
+            leftLeg.castShadow = true;
+            const rightLeg = new THREE.Mesh(legGeo, jeansMat);
+            rightLeg.position.set(0.16, 0.42, 0);
+            rightLeg.castShadow = true;
+            group.add(leftLeg, rightLeg);
+
+            // נעליים - בלוקים חומים כמו בתמונות
+            const shoeGeo = new THREE.BoxGeometry(0.22, 0.18, 0.32);
+            const leftShoe = new THREE.Mesh(shoeGeo, shoeMat);
+            leftShoe.position.set(-0.16, 0.09, 0.05);
+            const rightShoe = new THREE.Mesh(shoeGeo, shoeMat);
+            rightShoe.position.set(0.16, 0.09, 0.05);
+            group.add(leftShoe, rightShoe);
+
+            // ראש
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 16), skinMat);
+            head.position.y = 1.85;
+            head.castShadow = true;
+            group.add(head);
+
+            // שיער - לפי סוג הדמות
+            if (v.hairType === 'short') {
+                const hairCap = new THREE.Mesh(new THREE.SphereGeometry(0.31, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.62), hairMat);
+                hairCap.position.y = 1.9;
+                hairCap.rotation.x = -0.15;
+                group.add(hairCap);
+            } else if (v.hairType === 'messy') {
+                const hairCap = new THREE.Mesh(new THREE.SphereGeometry(0.33, 12, 12, 0, Math.PI * 2, 0, Math.PI * 0.68), hairMat);
+                hairCap.position.y = 1.9;
+                hairCap.rotation.x = -0.1;
+                group.add(hairCap);
+            } else if (v.hairType === 'shoulder') {
+                const hairCap = new THREE.Mesh(new THREE.SphereGeometry(0.32, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.6), hairMat);
+                hairCap.position.y = 1.92;
+                group.add(hairCap);
+                const hairBack = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.22, 0.55, 12), hairMat);
+                hairBack.position.set(0, 1.6, -0.08);
+                group.add(hairBack);
+            } else if (v.hairType === 'bob') {
+                const hairCap = new THREE.Mesh(new THREE.SphereGeometry(0.34, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.65), hairMat);
+                hairCap.position.y = 1.9;
+                group.add(hairCap);
+                const hairSideL = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.4, 0.28), hairMat);
+                hairSideL.position.set(-0.28, 1.68, 0);
+                const hairSideR = hairSideL.clone();
+                hairSideR.position.set(0.28, 1.68, 0);
+                group.add(hairSideL, hairSideR);
+            }
+
+            // תיק קטן
+            const bag = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.24, 0.16), new THREE.MeshStandardMaterial({ color: 0x2d3436 }));
+            bag.position.set(0.36, 0.95, 0);
+            group.add(bag);
+
+            group.scale.set(1.9, 1.9, 1.9);
+            return group;
+        }
+
+        const DESK_POS = new THREE.Vector3(0, 0, -1);
+        const MAX_QUEUE = 20; // התור מתמלא כמו תור אמיתי - עד שהוא מגיע כמעט לכניסת המלון
+        const DESK_WAIT_POS = Array.from({ length: MAX_QUEUE }, (_, i) => new THREE.Vector3(0, 0, 1 + i * 2));
+        const DOOR_POS = new THREE.Vector3(0, 0, 43);
+
+        const guests = [];
+        const deskQueue = []; // סדר האורחים בתור בפועל - מהראש (הכי קרוב לדלפק) לסוף (הכי קרוב לדלת)
+        let guestSpawnTimer = 3;
+
+        function spawnGuest() {
+            if (deskQueue.length >= MAX_QUEUE) return;
+            const mesh = createGuestMesh();
+            mesh.position.copy(DOOR_POS);
+            scene.add(mesh);
+            const guest = {
+                mesh,
+                state: 'toDesk',
+                timer: 0,
+                room: null,
+                path: null,
+                pathIndex: 0,
+                beingHandled: false,
+            };
+            guests.push(guest);
+            deskQueue.push(guest);
+        }
+
+        function buildPathToRoom(room) {
+            const roomPos = roomPositions[room];
+            return [
+                { x: STAIR.cx, z: STAIR.cz },                    // בסיס המדרגות (קומת קרקע)
+                { x: STAIR.cx, z: STAIR.cz - STAIR.totalRun },   // ראש המדרגות (קומה 2)
+                { x: roomPos.x, z: roomPos.z },                  // החדר עצמו
+            ];
+        }
+
+        function buildPathToExit() {
+            return [
+                { x: STAIR.cx, z: STAIR.cz - STAIR.totalRun },   // ראש המדרגות
+                { x: STAIR.cx, z: STAIR.cz },                    // בסיס המדרגות
+                { x: DOOR_POS.x, z: DOOR_POS.z },                // הדלת
+            ];
+        }
+
+        function updateGuests(delta) {
+            guests.forEach(g => {
+                if (g.state === 'toDesk') {
+                    const slot = deskQueue.indexOf(g);
+                    const target = slot === -1 ? DESK_WAIT_POS[0] : (DESK_WAIT_POS[slot] || DESK_WAIT_POS[DESK_WAIT_POS.length - 1]);
+                    const dir = new THREE.Vector3().subVectors(target, g.mesh.position);
+                    dir.y = 0;
+                    const dist = dir.length();
+                    if (dist < 0.3) {
+                        if (slot === 0) {
+                            g.state = 'waitingAtDesk';
+                        }
+                    } else {
+                        dir.normalize();
+                        g.mesh.position.addScaledVector(dir, Math.min(0.045, dist));
+                        g.mesh.rotation.y = Math.atan2(dir.x, dir.z);
+                    }
+                } else if (g.state === 'toRoom' || g.state === 'toExit') {
+                    const wp = g.path[g.pathIndex];
+                    const dir = new THREE.Vector3(wp.x - g.mesh.position.x, 0, wp.z - g.mesh.position.z);
+                    const dist = dir.length();
+
+                    // הגובה נגזר מאותה פונקציית גובה-רצפה שמשתמש בה השחקן - כך האורח באמת מטפס במדרגות
+                    const targetY = getFloorHeight(g.mesh.position.x, g.mesh.position.z);
+                    g.mesh.position.y += (targetY - g.mesh.position.y) * 0.15;
+
+                    if (dist < 0.4) {
+                        g.pathIndex++;
+                        if (g.pathIndex >= g.path.length) {
+                            if (g.state === 'toRoom') {
+                                g.state = 'inRoom';
+                                g.timer = 6;
+                                g.mesh.rotation.z = Math.PI / 2; // "עולה על המיטה" - פשטני
+                                g.mesh.position.y -= 0.3;
+                            } else {
+                                g.state = 'done';
+                            }
+                        }
+                    } else {
+                        dir.normalize();
+                        g.mesh.position.addScaledVector(dir, Math.min(0.05, dist));
+                        g.mesh.rotation.y = Math.atan2(dir.x, dir.z);
+                    }
+                } else if (g.state === 'inRoom') {
+                    g.timer -= delta;
+                    if (g.timer <= 0) {
+                        g.mesh.rotation.z = 0;
+                        g.mesh.position.y += 0.3;
+                        occupiedRooms.delete(g.room);
+                        createDirtySpots(g.room);
+                        g.state = 'toExit';
+                        g.path = buildPathToExit();
+                        g.pathIndex = 0;
+                    }
+                }
+            });
+
+            for (let i = guests.length - 1; i >= 0; i--) {
+                if (guests[i].state === 'done') {
+                    scene.remove(guests[i].mesh);
+                    guests.splice(i, 1);
+                }
+            }
+        }
+
+        function isNearDeskWithGuest() {
+            const d = horizontalDist(playerGroup.position, DESK_POS);
+            return d < 6 && guests.some(g => g.state === 'waitingAtDesk' && !g.beingHandled);
+        }
+
+        let checkinHolding = false;
+        let checkinProgress = 0;
+        const CHECKIN_HOLD_TIME = 2.0; // שניות
+
+        function updateCheckinRing(progress) {
+            const circumference = 263.89;
+            const ring = document.getElementById('checkin-progress');
+            ring.style.strokeDashoffset = circumference * (1 - progress);
+        }
+
+        // ==========================================================
+        // ניקיון חדרים - כשאורח עוזב, נוצרים 3 מקומות מלוכלכים בחדר
+        // וכל עוד לא נוקו כולם, החדר נחשב לא פנוי לאורח חדש
+        // ==========================================================
+        function createDirtySpotMesh() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 128; canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = 'rgba(90,70,50,0.55)';
+            ctx.beginPath();
+            ctx.ellipse(64, 64, 50, 36, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = 'rgba(55,40,28,0.5)';
+            ctx.beginPath();
+            ctx.ellipse(42, 50, 20, 13, 0.4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(82, 76, 18, 12, -0.3, 0, Math.PI * 2);
+            ctx.fill();
+            const texture = new THREE.CanvasTexture(canvas);
+            const mesh = new THREE.Mesh(new THREE.CircleGeometry(0.9, 24), new THREE.MeshStandardMaterial({ map: texture, transparent: true, roughness: 0.9 }));
+            mesh.rotation.x = -Math.PI / 2;
+            return mesh;
+        }
+
+        function createDirtySpots(room) {
+            const roomPos = roomPositions[room];
+            const offsets = [
+                { dx: 1.8, dz: 1.3 },
+                { dx: 1.8, dz: -1.3 },
+                { dx: -0.2, dz: 1.5 },
+            ];
+            const spots = offsets.map(off => {
+                const x = roomPos.x + off.dx;
+                const z = roomPos.z + off.dz;
+                const mesh = createDirtySpotMesh();
+                mesh.position.set(x, MEZZ.height + 0.03, z);
+                scene.add(mesh);
+                return { mesh, cleaned: false, x, z };
+            });
+            dirtyRooms.set(room, spots);
+        }
+
+        function findNearestDirtySpot() {
+            let best = null, bestDist = Infinity;
+            dirtyRooms.forEach((spots, room) => {
+                spots.forEach(spot => {
+                    if (spot.cleaned) return;
+                    const d = horizontalDist(playerGroup.position, spot);
+                    if (d < 2.5 && d < bestDist) {
+                        bestDist = d;
+                        best = { room, spot };
+                    }
+                });
+            });
+            return best;
+        }
+
+        function performClean(room, spot) {
+            spot.cleaned = true;
+            scene.remove(spot.mesh);
+            const spots = dirtyRooms.get(room);
+            if (spots && spots.every(s => s.cleaned)) {
+                dirtyRooms.delete(room);
+                showPrompt(`חדר ${room} נקי לגמרי! ✨`);
+            } else {
+                showPrompt('ניקית מקום מלוכלך! 🧹');
+            }
+        }
+
+        // מחזיר מה הפעולה הזמינה כרגע לשחקן (צ'ק-אין / ניקיון / כלום)
+        function getHoldContext() {
+            if (isNearDeskWithGuest()) return { type: 'checkin' };
+            const found = findNearestDirtySpot();
+            if (found) return { type: 'clean', room: found.room, spot: found.spot };
+            return null;
+        }
+
+        function performCheckin() {
+            const waitingGuest = guests.find(g => g.state === 'waitingAtDesk' && !g.beingHandled);
+            if (!waitingGuest) return;
+            const freeRoom = allRoomNumbers.find(r => !occupiedRooms.has(r) && !dirtyRooms.has(r));
+            if (!freeRoom) {
+                showPrompt('אין חדרים פנויים כרגע! 🚫');
+                return;
+            }
+            occupiedRooms.add(freeRoom);
+            const dqIdx = deskQueue.indexOf(waitingGuest);
+            if (dqIdx !== -1) deskQueue.splice(dqIdx, 1);
+            const roomIndex = allRoomNumbers.indexOf(freeRoom);
+            const payment = 25 + roomIndex * 8 + Math.floor(Math.random() * 10);
+            addMoney(payment);
+            showPrompt(`אורח קיבל חדר ${freeRoom}! +${payment} 💵`);
+            guestsServedCount++;
+            saveGame();
+            waitingGuest.room = freeRoom;
+            waitingGuest.path = buildPathToRoom(freeRoom);
+            waitingGuest.pathIndex = 0;
+            waitingGuest.state = 'toRoom';
+        }
+
+        // אפשר להחזיק גם ישירות על כפתור המפתח שעל המסך (עכבר או מגע), בנוסף להחזקת E
+        const checkinButtonEl = document.getElementById('checkin-button');
+        function startCheckinHold(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            checkinHolding = true;
+        }
+        function stopCheckinHold(e) {
+            if (e) e.stopPropagation();
+            checkinHolding = false;
+        }
+        checkinButtonEl.addEventListener('mousedown', startCheckinHold);
+        checkinButtonEl.addEventListener('touchstart', startCheckinHold, { passive: false });
+        checkinButtonEl.addEventListener('mouseup', stopCheckinHold);
+        checkinButtonEl.addEventListener('mouseleave', stopCheckinHold);
+        checkinButtonEl.addEventListener('touchend', stopCheckinHold);
+        checkinButtonEl.addEventListener('touchcancel', stopCheckinHold);
+
+        // --- מערכת תנועה (מקלדת) ---
+        const move = { forward: false, backward: false, left: false, right: false };
+
+        window.addEventListener('keydown', (e) => {
+            switch (e.code) {
+                case 'ArrowUp': case 'KeyW': move.forward = true; break;
+                case 'ArrowDown': case 'KeyS': move.backward = true; break;
+                case 'ArrowLeft': case 'KeyA': move.left = true; break;
+                case 'ArrowRight': case 'KeyD': move.right = true; break;
+                case 'KeyE':
+                    if (getHoldContext()) {
+                        checkinHolding = true;
+                    } else {
+                        tryPurchaseNextRoom();
+                        tryPurchaseNextCleaner();
+                        tryPurchaseNextReceptionist();
+                    }
+                    break;
+            }
+        });
+        window.addEventListener('keyup', (e) => {
+            switch (e.code) {
+                case 'ArrowUp': case 'KeyW': move.forward = false; break;
+                case 'ArrowDown': case 'KeyS': move.backward = false; break;
+                case 'ArrowLeft': case 'KeyA': move.left = false; break;
+                case 'ArrowRight': case 'KeyD': move.right = false; break;
+                case 'KeyE': checkinHolding = false; break;
+            }
+        });
+
+        // ==========================================================
+        // שליטה במצלמה עם העכבר (Pointer Lock)
+        // ==========================================================
+        let cameraYaw = 0;                 // סיבוב אופקי של המצלמה סביב השחקן
+        let cameraPitch = 0.4636;           // זווית אנכית (גובה מבט) - מתחיל כמו במקור
+        const mouseSensitivity = 0.0025;
+        const minPitch = 0.1;
+        const maxPitch = 1.3;
+
+        // גרירת עכבר לסיבוב המצלמה - ללא Pointer Lock, כדי שהסמן יישאר גלוי תמיד
+        let isDragging = false;
+
+        container.addEventListener('mousedown', () => {
+            isDragging = true;
+            container.style.cursor = 'grabbing';
+        });
+        window.addEventListener('mouseup', () => {
+            isDragging = false;
+            container.style.cursor = 'pointer';
+        });
+        container.addEventListener('mouseleave', () => {
+            isDragging = false;
+            container.style.cursor = 'pointer';
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                cameraYaw -= e.movementX * mouseSensitivity;
+                cameraPitch -= e.movementY * mouseSensitivity;
+                cameraPitch = Math.max(minPitch, Math.min(maxPitch, cameraPitch));
+            }
+        });
+
+        // תמיכה במסכי מגע - גרירה באצבע מסובבת את המצלמה
+        let lastTouchX = 0, lastTouchY = 0;
+        container.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 1) {
+                isDragging = true;
+                lastTouchX = e.touches[0].clientX;
+                lastTouchY = e.touches[0].clientY;
+            }
+        });
+        container.addEventListener('touchmove', (e) => {
+            if (isDragging && e.touches.length === 1) {
+                const dx = e.touches[0].clientX - lastTouchX;
+                const dy = e.touches[0].clientY - lastTouchY;
+                cameraYaw -= dx * mouseSensitivity;
+                cameraPitch -= dy * mouseSensitivity;
+                cameraPitch = Math.max(minPitch, Math.min(maxPitch, cameraPitch));
+                lastTouchX = e.touches[0].clientX;
+                lastTouchY = e.touches[0].clientY;
+                e.preventDefault();
+            }
+        }, { passive: false });
+        container.addEventListener('touchend', () => { isDragging = false; });
+
+        setTimeout(() => {
+            const loader = document.getElementById('loader');
+            loader.style.opacity = 0;
+            setTimeout(() => loader.remove(), 500);
+        }, 800);
+
+        // --- לולאת המשחק ---
+        const clock = new THREE.Clock();
+        const moveSpeed = 0.12;
+        const rotateSpeed = 0.05;
+        const playerRadius = 0.6;
+        const cameraDistance = 10.8;
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const delta = clock.getDelta();
+            let elapsedTime = clock.getElapsedTime();
+
+            if (move.left) playerGroup.rotation.y += rotateSpeed;
+            if (move.right) playerGroup.rotation.y -= rotateSpeed;
+
+            if (move.forward || move.backward) {
+                const dist = move.forward ? moveSpeed : -moveSpeed * 0.6;
+                const dir = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), playerGroup.rotation.y);
+                const nx = playerGroup.position.x + dir.x * dist;
+                const nz = playerGroup.position.z + dir.z * dist;
+
+                // תזוזה בנפרד לכל ציר, כדי לאפשר "החלקה" לאורך קיר בלי להיתקע
+                if (!collidesWithWall(nx, playerGroup.position.z, playerRadius)) playerGroup.position.x = nx;
+                if (!collidesWithWall(playerGroup.position.x, nz, playerRadius)) playerGroup.position.z = nz;
+            }
+
+            if (move.forward) {
+                leftLeg.position.z = Math.sin(elapsedTime * 12) * 0.25;
+                rightLeg.position.z = -Math.sin(elapsedTime * 12) * 0.25;
+                leftShoe.position.z = 0.1 + Math.sin(elapsedTime * 12) * 0.25;
+                rightShoe.position.z = 0.1 - Math.sin(elapsedTime * 12) * 0.25;
+                leftArm.rotation.x = -Math.sin(elapsedTime * 12) * 0.2;
+                rightArm.rotation.x = Math.sin(elapsedTime * 12) * 0.2;
+            } else if (move.backward) {
+                leftLeg.position.z = -Math.sin(elapsedTime * 12) * 0.2;
+                rightLeg.position.z = Math.sin(elapsedTime * 12) * 0.2;
+            } else {
+                leftLeg.position.z = 0;
+                rightLeg.position.z = 0;
+                leftShoe.position.z = 0.1;
+                rightShoe.position.z = 0.1;
+                leftArm.rotation.x = 0;
+                rightArm.rotation.x = 0;
+            }
+
+            const targetY = getFloorHeight(playerGroup.position.x, playerGroup.position.z);
+            playerGroup.position.y += (targetY - playerGroup.position.y) * 0.25;
+
+            // --- עדכון אורחים והכנסת אורחים חדשים ---
+            guestSpawnTimer -= delta;
+            if (guestSpawnTimer <= 0) {
+                spawnGuest();
+                guestSpawnTimer = nextGuestSpawnDelay();
+            }
+            updateGuests(delta);
+            updateCleaners(delta);
+            updateReceptionists(delta);
+
+            // --- כפתור החזקה (צ'ק-אין ליד הדלפק / ניקוי חדר) ---
+            const holdContext = getHoldContext();
+            document.getElementById('checkin-button').classList.toggle('hidden', !holdContext);
+            document.getElementById('checkin-icon').textContent = (holdContext && holdContext.type === 'clean') ? '🧹' : '🔑';
+            if (holdContext && checkinHolding) {
+                checkinProgress = Math.min(1, checkinProgress + delta / CHECKIN_HOLD_TIME);
+                if (checkinProgress >= 1) {
+                    if (holdContext.type === 'checkin') {
+                        performCheckin();
+                    } else if (holdContext.type === 'clean') {
+                        performClean(holdContext.room, holdContext.spot);
+                    }
+                    checkinProgress = 0;
+                    checkinHolding = false;
+                }
+            } else {
+                checkinProgress = Math.max(0, checkinProgress - delta * 3);
+            }
+            updateCheckinRing(checkinProgress);
+            document.getElementById('guests-waiting').textContent = guests.filter(g => g.state === 'waitingAtDesk').length;
+
+            // מצלמה שנשלטת לחלוטין ע"י העכבר (יאו + פיץ' סביב השחקן)
+            const targetCamX = playerGroup.position.x - Math.sin(cameraYaw) * cameraDistance * Math.cos(cameraPitch);
+            const targetCamZ = playerGroup.position.z - Math.cos(cameraYaw) * cameraDistance * Math.cos(cameraPitch);
+            const targetCamY = playerGroup.position.y + 1 + cameraDistance * Math.sin(cameraPitch);
+
+            camera.position.x += (targetCamX - camera.position.x) * 0.15;
+            camera.position.y += (targetCamY - camera.position.y) * 0.15;
+            camera.position.z += (targetCamZ - camera.position.z) * 0.15;
+
+            camera.lookAt(playerGroup.position.x, playerGroup.position.y + 1.8, playerGroup.position.z);
+
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        animate();
+    </script>
+</body>
+</html>
