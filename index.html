@@ -178,10 +178,165 @@
             font-size: 32px;
             z-index: 1;
         }
+
+        #device-select-screen {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, #2d1b4e, #4a2e6e);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9998;
+        }
+        .device-select-panel {
+            text-align: center;
+            padding: 30px;
+        }
+        .device-select-title {
+            font-size: 34px;
+            color: #fbc531;
+            font-weight: bold;
+            display: block;
+            margin-bottom: 10px;
+        }
+        .device-select-subtitle {
+            color: #f1f2f6;
+            font-size: 18px;
+            margin-bottom: 24px;
+        }
+        #device-select-buttons {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+        }
+        .device-select-btn {
+            background: linear-gradient(135deg, #fdf6c9, #f5d76e);
+            border: 3px solid #d4af37;
+            border-radius: 16px;
+            padding: 20px 22px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #2d1b4e;
+            cursor: pointer;
+            min-width: 100px;
+            line-height: 1.6;
+        }
+        .device-select-btn:hover {
+            background: linear-gradient(135deg, #fff3b0, #f7de85);
+        }
+
+        #mobile-joystick {
+            position: fixed;
+            bottom: 30px;
+            left: 30px;
+            z-index: 30;
+            touch-action: none;
+        }
+        #joystick-base {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: rgba(0,0,0,0.35);
+            border: 2px solid rgba(255,255,255,0.4);
+            position: relative;
+        }
+        #joystick-knob {
+            width: 54px;
+            height: 54px;
+            border-radius: 50%;
+            background: rgba(251,197,49,0.85);
+            border: 2px solid #d4af37;
+            position: absolute;
+            top: 33px;
+            left: 33px;
+        }
+        #mobile-action-btn {
+            position: fixed;
+            bottom: 40px;
+            right: 30px;
+            z-index: 30;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #74b9ff, #3498db);
+            border: 3px solid #ffffff;
+            color: #fff;
+            font-weight: bold;
+            font-size: 13px;
+            line-height: 1.3;
+            cursor: pointer;
+        }
+        body.tablet-mode #joystick-base { width: 160px; height: 160px; }
+        body.tablet-mode #joystick-knob { width: 70px; height: 70px; top: 45px; left: 45px; }
+        body.tablet-mode #mobile-action-btn { width: 100px; height: 100px; font-size: 16px; }
+
+        #elevator-menu {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(20, 12, 35, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 40;
+        }
+        .elevator-panel {
+            background: linear-gradient(135deg, #2d1b4e, #4a2e6e);
+            border: 3px solid #d4af37;
+            border-radius: 18px;
+            padding: 24px 28px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            text-align: center;
+            max-width: 340px;
+        }
+        .elevator-panel h2 {
+            color: #fbc531;
+            margin: 0 0 16px 0;
+            font-size: 22px;
+        }
+        #elevator-floor-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+        .elevator-floor-btn {
+            background: linear-gradient(135deg, #fdf6c9, #f5d76e);
+            border: 2px solid #d4af37;
+            border-radius: 10px;
+            padding: 14px 6px;
+            font-size: 15px;
+            font-weight: bold;
+            color: #2d1b4e;
+            cursor: pointer;
+        }
+        .elevator-floor-btn:hover {
+            background: linear-gradient(135deg, #fff3b0, #f7de85);
+        }
+        #elevator-close-btn {
+            margin-top: 16px;
+            background: transparent;
+            border: 2px solid #fbc531;
+            color: #fbc531;
+            border-radius: 10px;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
+
+    <div id="device-select-screen">
+        <div class="device-select-panel">
+            <span class="device-select-title">🏨 מלון גומא</span>
+            <p class="device-select-subtitle">באיזה מכשיר אתה משחק?</p>
+            <div id="device-select-buttons">
+                <button class="device-select-btn" data-device="phone">📱<br>טלפון</button>
+                <button class="device-select-btn" data-device="tablet">📲<br>טאבלט</button>
+                <button class="device-select-btn" data-device="desktop">💻<br>מחשב</button>
+            </div>
+        </div>
+    </div>
 
     <div id="loader"><span>🏨</span>טוען את מלון גומא...</div>
     <div id="canvas-container"></div>
@@ -195,15 +350,31 @@
         <span class="checkin-icon" id="checkin-icon">🔑</span>
     </div>
 
+    <div id="mobile-joystick" class="hidden">
+        <div id="joystick-base">
+            <div id="joystick-knob"></div>
+        </div>
+    </div>
+    <button id="mobile-action-btn" class="hidden">⚡<br>פעולה</button>
+
+    <div id="elevator-menu" class="hidden">
+        <div class="elevator-panel">
+            <h2>🛗 בחר קומה</h2>
+            <div id="elevator-floor-buttons"></div>
+            <button id="elevator-close-btn">סגור</button>
+        </div>
+    </div>
+
     <div id="ui-layer">
         <div id="money-display">💵 <span id="money-value">0</span></div>
         <h1>מלון גומא 🛎️</h1>
         <p>נער השירות מוכן לפעולה!</p>
-        <div class="controls">
+        <div class="controls" id="controls-text">
             <strong>מקשי שליטה:</strong><br>
             • תנועה: מקשי החיצים או W, A, S, D<br>
             • עלייה במדרגות: פשוט להיכנס אליהן<br>
-            • E: לקנות חדר בקומה 2, לשכור מנקה ליד המדרגות, או לשכור פקיד קבלה ליד הדלפק<br>
+            • E: לקנות חדר או לשכור מנקה בכל אחת מקומות 2 עד 9, לשכור פקיד קבלה, או לקחת נייר טואלט<br>
+            • על תא שירותים ריק: החזק E, או לחץ והחזק על כפתור נייר הטואלט 🧻 שתי שניות, כדי למלא<br>
             • ליד דלפק הקבלה: החזק E, או לחץ והחזק על כפתור המפתח 🔑 שתי שניות, כדי לתת חדר לאורח ממתין<br>
             • על מקום מלוכלך בחדר: החזק E, או לחץ והחזק על כפתור המטאטא 🧹 שתי שניות, כדי לנקות<br>
             • עכבר: לחץ על המסך לשליטה בזווית המצלמה
@@ -212,6 +383,35 @@
     </div>
 
     <script>
+        // ===== בחירת סוג מכשיר =====
+        let deviceType = 'desktop';
+        function applyDeviceMode(type) {
+            document.body.classList.remove('phone-mode', 'tablet-mode', 'desktop-mode');
+            document.body.classList.add(type + '-mode');
+            const isTouch = type === 'phone' || type === 'tablet';
+            document.getElementById('mobile-joystick').classList.toggle('hidden', !isTouch);
+            document.getElementById('mobile-action-btn').classList.toggle('hidden', !isTouch);
+            document.getElementById('mouse-hint').classList.toggle('hidden', isTouch);
+
+            const controlsText = document.getElementById('controls-text');
+            if (isTouch) {
+                controlsText.innerHTML = `
+                    <strong>שליטה במגע:</strong><br>
+                    • הג'ויסטיק בפינה השמאלית התחתונה - תנועה וסיבוב<br>
+                    • גרירה על המסך - סיבוב המצלמה<br>
+                    • כפתור ⚡ פעולה - קניית חדר, שכירת מנקה/פקיד קבלה, לקיחת נייר טואלט<br>
+                    • כפתור 🔑 / 🧹 / 🧻 - החזק שתי שניות לצ'ק-אין, ניקוי, או מילוי נייר טואלט
+                `;
+            }
+        }
+        document.querySelectorAll('.device-select-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                deviceType = btn.dataset.device;
+                document.getElementById('device-select-screen').style.display = 'none';
+                applyDeviceMode(deviceType);
+            });
+        });
+
         // --- הגדרות בסיסיות ---
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
@@ -300,25 +500,31 @@
             scene.add(wall);
         }
 
-        createWall(90, 16, 0, 8, -45, 0);
-        createWall(90, 16, 0, 8, 45, 0);
-        createWall(90, 16, -45, 8, 0, Math.PI / 2);
-        createWall(90, 16, 45, 8, 0, Math.PI / 2);
+        const BUILDING_HEIGHT = 48; // גובה שמכסה את כל 9 הקומות (כולל קומה 9) + מרווח לתקרה
+
+        createWall(90, BUILDING_HEIGHT, 0, BUILDING_HEIGHT / 2, -45, 0);
+        createWall(90, BUILDING_HEIGHT, 0, BUILDING_HEIGHT / 2, 45, 0);
+        createWall(90, BUILDING_HEIGHT, -45, BUILDING_HEIGHT / 2, 0, Math.PI / 2);
+        createWall(90, BUILDING_HEIGHT, 45, BUILDING_HEIGHT / 2, 0, Math.PI / 2);
 
         const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(90, 90), wallMat);
         ceiling.rotation.x = Math.PI / 2;
-        ceiling.position.set(0, 16, 0);
+        ceiling.position.set(0, BUILDING_HEIGHT, 0);
         scene.add(ceiling);
 
         // --- מתאמי התנגשות לכל הקירות (חיצוניים + חדרים) ---
+        // קירות חיצוניים (floorIdx: null) חלים תמיד, על כל הקומות.
+        // קירות חדרים (floorIdx מוגדר) חלים רק על השחקן כשהוא נמצא באותה קומה בדיוק,
+        // אחרת חדר שנבנה בקומה אחת ייצור "מחסום בלתי נראה" גם בקומות אחרות שחולקות את אותו x/z.
         const wallColliders = [
-            { xMin: -45, xMax: 45, zMin: -45.2, zMax: -44.8 }, // קיר אחורי
-            { xMin: -45, xMax: 45, zMin: 44.8, zMax: 45.2 },   // קיר קדמי
-            { xMin: -45.2, xMax: -44.8, zMin: -45, zMax: 45 }, // קיר שמאל
-            { xMin: 44.8, xMax: 45.2, zMin: -45, zMax: 45 },   // קיר ימין
+            { xMin: -45, xMax: 45, zMin: -45.2, zMax: -44.8, floorIdx: null }, // קיר אחורי
+            { xMin: -45, xMax: 45, zMin: 44.8, zMax: 45.2, floorIdx: null },   // קיר קדמי
+            { xMin: -45.2, xMax: -44.8, zMin: -45, zMax: 45, floorIdx: null }, // קיר שמאל
+            { xMin: 44.8, xMax: 45.2, zMin: -45, zMax: 45, floorIdx: null },   // קיר ימין
         ];
-        function collidesWithWall(x, z, radius) {
+        function collidesWithWall(x, z, radius, floorIdx) {
             for (const w of wallColliders) {
+                if (w.floorIdx != null && w.floorIdx !== floorIdx) continue;
                 if (x + radius > w.xMin && x - radius < w.xMax && z + radius > w.zMin && z - radius < w.zMax) return true;
             }
             return false;
@@ -481,6 +687,43 @@
         createElevator(-44.5, -20);
         createElevator(-44.5, -25);
 
+        // --- מעלית פונקציונלית משמאל לשטיח הקבלה - נכנסים אליה ונפתח תפריט בחירת קומה ---
+        const ELEVATOR_POS = { x: -15, z: 0 };
+        const FLOOR_LANDING_POS = { x: 42, z: -18 }; // נקודת נחיתה בטוחה בכל קומה (2 עד 9)
+        createElevator(ELEVATOR_POS.x, ELEVATOR_POS.z);
+        createSign('🛗 מעלית', ELEVATOR_POS.x, 8.3, ELEVATOR_POS.z + 0.35, 0);
+
+        let elevatorMenuOpen = false;
+        function openElevatorMenu() {
+            if (elevatorMenuOpen) return;
+            elevatorMenuOpen = true;
+            document.getElementById('elevator-menu').classList.remove('hidden');
+        }
+        function closeElevatorMenu() {
+            elevatorMenuOpen = false;
+            document.getElementById('elevator-menu').classList.add('hidden');
+        }
+        function goToFloor(floorIdx) {
+            if (floorIdx === 0) {
+                playerGroup.position.set(ELEVATOR_POS.x, 0, ELEVATOR_POS.z + 4);
+            } else {
+                playerGroup.position.set(FLOOR_LANDING_POS.x, FLOOR_HEIGHTS[floorIdx], FLOOR_LANDING_POS.z);
+            }
+            playerCurrentFloorIdx = floorIdx;
+            closeElevatorMenu();
+            showPrompt(`הגעת לקומה ${floorIdx + 1}! 🛗`);
+        }
+
+        const elevatorFloorButtonsEl = document.getElementById('elevator-floor-buttons');
+        for (let i = 0; i <= 8; i++) {
+            const btn = document.createElement('button');
+            btn.className = 'elevator-floor-btn';
+            btn.textContent = `${i + 1}  קומה ${i + 1}`;
+            btn.addEventListener('click', () => goToFloor(i));
+            elevatorFloorButtonsEl.appendChild(btn);
+        }
+        document.getElementById('elevator-close-btn').addEventListener('click', closeElevatorMenu);
+
         // ==========================================================
         // מדרגות → קומה שנייה (מזנין)
         // הוזזו קדימה (cz גדול יותר) כדי לפנות עומק גדול בהרבה במזנין
@@ -491,6 +734,18 @@
         STAIR.totalRun = STAIR.steps * STAIR.stepD;
 
         const MEZZ = { xMin: -40, xMax: 44, zMin: -44.4, zMax: STAIR.cz - STAIR.totalRun, height: STAIR.totalRise };
+
+        // ==========================================================
+        // מערך קומות - קומת קרקע (0) ועוד 8 קומות עם חדרים (1=קומה2 ... 8=קומה9)
+        // כל קומה חדשה עולה בדיוק ה"גובה" של קומה 2 (MEZZ.height) מעל הקודמת
+        // ==========================================================
+        const FLOOR_HEIGHTS = [0];
+        for (let i = 1; i <= 8; i++) FLOOR_HEIGHTS.push(i * MEZZ.height);
+
+        // מיקום ה-X הייחודי של המדרגות העולות מכל קומה לקומה שמעליה (אינדקס = קומה יוצאת)
+        // אינדקס 0 = מקרקע לקומה 2 (המדרגות המקוריות, x=STAIR.cx). 1..7 = קומה2->3 ... קומה8->9
+        const UP_STAIR_X = [STAIR.cx, -36, -24, -12, 0, 12, 24, 36];
+        const FLOOR_ZMAX = -10.4; // הקצה הקדמי של כל קומה (זהה לקומה 2)
 
         function createStaircase() {
             const group = new THREE.Group();
@@ -587,6 +842,63 @@
         }
         createMezzanine();
 
+        // ==========================================================
+        // 7 קומות נוספות (3 עד 9) - אותו מבנה בדיוק כמו קומה 2, רק גבוה יותר
+        // ==========================================================
+        function buildFloorLevel(floorIdx) {
+            const height = FLOOR_HEIGHTS[floorIdx];
+            const incomingX = UP_STAIR_X[floorIdx - 1];
+            const w = MEZZ.xMax - MEZZ.xMin, d = FLOOR_ZMAX - MEZZ.zMin;
+            const cx = (MEZZ.xMin + MEZZ.xMax) / 2, cz = (MEZZ.zMin + FLOOR_ZMAX) / 2;
+
+            const platform = new THREE.Mesh(new THREE.BoxGeometry(w, 0.3, d), marbleStairMat);
+            platform.position.set(cx, height - 0.15, cz);
+            platform.castShadow = true;
+            platform.receiveShadow = true;
+            scene.add(platform);
+
+            for (let px = MEZZ.xMin + 2; px <= MEZZ.xMax - 2; px += 8) {
+                const support = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, height, 16), columnMat);
+                support.position.set(px, height / 2, FLOOR_ZMAX - 1);
+                support.castShadow = true;
+                scene.add(support);
+            }
+
+            const railGroup = new THREE.Group();
+            for (let px = MEZZ.xMin; px <= MEZZ.xMax; px += 2) {
+                if (px > incomingX - STAIR.width / 2 - 1 && px < incomingX + STAIR.width / 2 + 1) continue;
+                const post = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 1.1, 8), columnGoldMat);
+                post.position.set(px, height + 0.55, FLOOR_ZMAX);
+                railGroup.add(post);
+            }
+            const gapStart = incomingX - STAIR.width / 2 - 1;
+            const gapEnd = incomingX + STAIR.width / 2 + 1;
+            const railSegL = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, gapStart - MEZZ.xMin, 12), columnGoldMat);
+            railSegL.rotation.z = Math.PI / 2;
+            railSegL.position.set((MEZZ.xMin + gapStart) / 2, height + 1.05, FLOOR_ZMAX);
+            railGroup.add(railSegL);
+            const railSegR = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, MEZZ.xMax - gapEnd, 12), columnGoldMat);
+            railSegR.rotation.z = Math.PI / 2;
+            railSegR.position.set((gapEnd + MEZZ.xMax) / 2, height + 1.05, FLOOR_ZMAX);
+            railGroup.add(railSegR);
+            scene.add(railGroup);
+
+            // מדרגות עולות מהקומה הזו לקומה שמעליה (אם יש כזו)
+            if (floorIdx <= 7) {
+                const x = UP_STAIR_X[floorIdx];
+                const group = new THREE.Group();
+                for (let i = 0; i < STAIR.steps; i++) {
+                    const step = new THREE.Mesh(new THREE.BoxGeometry(STAIR.width, STAIR.stepH, STAIR.stepD), marbleStairMat);
+                    step.position.set(x, height + i * STAIR.stepH + STAIR.stepH / 2, FLOOR_ZMAX - i * STAIR.stepD);
+                    step.castShadow = true; step.receiveShadow = true;
+                    group.add(step);
+                }
+                scene.add(group);
+                createSign(`⬆ לקומה ${floorIdx + 2}`, x, height + 3, FLOOR_ZMAX + 0.3, 0);
+            }
+        }
+        for (let f = 2; f <= 8; f++) buildFloorLevel(f);
+
         function createNumberPlaque(number) {
             const canvas = document.createElement('canvas');
             canvas.width = 128; canvas.height = 64;
@@ -604,7 +916,7 @@
         }
 
         // --- יצירת חדר מלון + מתאמי התנגשות אמיתיים לקירות הצדדיים שלו ---
-        function createHotelRoom(x, z, number, accentColor) {
+        function createHotelRoom(x, z, number, accentColor, y = MEZZ.height, floorIdx = 1) {
             const group = new THREE.Group();
             const w = 7.4, d = 6, h = 4;
 
@@ -640,22 +952,24 @@
                 m.castShadow = true; m.receiveShadow = true; group.add(m);
             });
             group.add(plaque, floorMarker);
-            group.position.set(x, MEZZ.height, z);
+            group.position.set(x, y, z);
             scene.add(group);
 
             // מתאמי התנגשות לקירות הצדדיים בקואורדינטות עולם (עובי מוגדל מעט לביטחון)
-            wallColliders.push({ xMin: x - w / 2 - 0.2, xMax: x - w / 2 + 0.2, zMin: z - d / 2, zMax: z + d / 2 });
-            wallColliders.push({ xMin: x + w / 2 - 0.2, xMax: x + w / 2 + 0.2, zMin: z - d / 2, zMax: z + d / 2 });
+            // מתויגים עם floorIdx כדי שיחסמו רק בקומה הזו, ולא ייצרו "מחסום בלתי נראה" בקומות אחרות
+            wallColliders.push({ xMin: x - w / 2 - 0.2, xMax: x - w / 2 + 0.2, zMin: z - d / 2, zMax: z + d / 2, floorIdx });
+            wallColliders.push({ xMin: x + w / 2 - 0.2, xMax: x + w / 2 + 0.2, zMin: z - d / 2, zMax: z + d / 2, floorIdx });
         }
         createHotelRoom(15, -41, '201', 0xd63031);
         createHotelRoom(27, -41, '202', 0x0984e3);
         createHotelRoom(39, -41, '203', 0x00b894);
 
         // --- מיקומי חדרים ורשימת כל החדרים הקיימים (לצורך שיבוץ אורחים) ---
+        // floorIdx: 0=קרקע (לא בשימוש לחדרים), 1=קומה2, 2=קומה3 ... 8=קומה9
         const roomPositions = {
-            '201': { x: 15, z: -41 },
-            '202': { x: 27, z: -41 },
-            '203': { x: 39, z: -41 },
+            '201': { x: 15, z: -41, floorIdx: 1 },
+            '202': { x: 27, z: -41, floorIdx: 1 },
+            '203': { x: 39, z: -41, floorIdx: 1 },
         };
         const allRoomNumbers = ['201', '202', '203'];
         const occupiedRooms = new Set();
@@ -732,16 +1046,26 @@
         }
 
         // ==========================================================
-        // מערכת גובה קרקע
+        // מערכת גובה קרקע - תומכת בכל הקומות (כולן חולקות את אותו שטח x/z,
+        // ולכן מחוץ למדרגות עצמן נשמר "הקומה הנוכחית" של השחקן כמצב מפורש)
         // ==========================================================
+        let playerCurrentFloorIdx = 0;
         function getFloorHeight(x, z) {
-            if (x > STAIR.cx - STAIR.width / 2 && x < STAIR.cx + STAIR.width / 2 &&
-                z <= STAIR.cz && z >= STAIR.cz - STAIR.totalRun) {
-                const t = (STAIR.cz - z) / STAIR.totalRun;
-                return t * STAIR.totalRise;
+            for (let i = 0; i < UP_STAIR_X.length; i++) {
+                const stx = UP_STAIR_X[i];
+                const width = i === 0 ? STAIR.width : 8;
+                const zBase = i === 0 ? STAIR.cz : FLOOR_ZMAX;
+                const zTop = zBase - STAIR.totalRun;
+                if (x > stx - width / 2 && x < stx + width / 2 && z <= zBase && z >= zTop) {
+                    const t = (zBase - z) / STAIR.totalRun;
+                    const h0 = FLOOR_HEIGHTS[i], h1 = FLOOR_HEIGHTS[i + 1];
+                    if (t > 0.95) playerCurrentFloorIdx = i + 1;
+                    else if (t < 0.05) playerCurrentFloorIdx = i;
+                    return h0 + t * (h1 - h0);
+                }
             }
-            if (x > MEZZ.xMin && x < MEZZ.xMax && z > MEZZ.zMin && z < MEZZ.zMax) {
-                return MEZZ.height;
+            if (x > MEZZ.xMin && x < MEZZ.xMax && z > MEZZ.zMin && z < FLOOR_ZMAX) {
+                return FLOOR_HEIGHTS[playerCurrentFloorIdx];
             }
             return 0;
         }
@@ -928,11 +1252,12 @@
             const colors = [0xd63031, 0x0984e3, 0x00b894, 0xe17055, 0x6c5ce7, 0xfdcb6e, 0x00cec9, 0xe84393, 0x636e72, 0x0fb9b1];
             const accent = colors[Math.floor(Math.random() * colors.length)];
             createHotelRoom(slot.x, slot.z, slot.number, accent);
-            roomPositions[slot.number] = { x: slot.x, z: slot.z };
+            roomPositions[slot.number] = { x: slot.x, z: slot.z, floorIdx: 1 };
             allRoomNumbers.push(slot.number);
         }
 
         function tryPurchaseNextRoom() {
+            if (Math.abs(playerGroup.position.y - MEZZ.height) > 1.5) return;
             const nextSlot = newRoomSlots.find(s => !s.purchased);
             if (!nextSlot) return;
             if (horizontalDist(playerGroup.position, { x: nextSlot.x, z: nextSlot.z }) >= 4) return;
@@ -1053,17 +1378,18 @@
             slot.tile = tile;
         });
 
-        function hireCleaner(slot) {
+        function hireCleaner(slot, floorHeight = MEZZ.height, floorIdx = 1) {
             const mesh = createCleanerMesh();
-            mesh.position.set(slot.x, MEZZ.height, slot.z);
+            mesh.position.set(slot.x, floorHeight, slot.z);
             scene.add(mesh);
             cleaners.push({
                 mesh, state: 'idle', path: null, pathIndex: 0, timer: 0, targetRoom: null,
-                searchCooldown: 0, homePos: { x: slot.x, z: slot.z },
+                searchCooldown: 0, homePos: { x: slot.x, y: floorHeight, z: slot.z }, floorIdx,
             });
         }
 
         function tryPurchaseNextCleaner() {
+            if (Math.abs(playerGroup.position.y - MEZZ.height) > 1.5) return;
             const nextSlot = cleanerSlots.find(s => !s.purchased);
             if (!nextSlot) return;
             if (horizontalDist(playerGroup.position, { x: nextSlot.x, z: nextSlot.z }) >= 4) return;
@@ -1080,19 +1406,136 @@
             }
         }
 
+        // ==========================================================
+        // קומות 3 עד 9 - אותה כמות בדיוק של חדרים (13) ומנקים (5) כמו בקומה 2,
+        // רק שכולם ניתנים לרכישה (בלי חדרים חינמיים) בכל קומה
+        // ==========================================================
+        const ROOM_ROW1_X = [-33, -21, -9, 3, 15, 27, 39];
+        const ROOM_ROW2_X = [-33, -21, -9, 3, 15, 27];
+
+        function computeRoomLadder(count) {
+            const arr = [];
+            let prev = 0;
+            for (let n = 1; n <= count; n++) {
+                const price = n === 1 ? 50 : prev + 50 * (n - 1);
+                arr.push(price);
+                prev = price;
+            }
+            return arr;
+        }
+
+        function buildFloorRoomSlots(floorIdx) {
+            const height = FLOOR_HEIGHTS[floorIdx];
+            const floorNum = floorIdx + 1; // floorIdx 2 => קומה 3
+            const positions = [
+                ...ROOM_ROW1_X.map(x => ({ x, z: -41 })),
+                ...ROOM_ROW2_X.map(x => ({ x, z: -31 })),
+            ];
+            const prices = computeRoomLadder(positions.length);
+            const slots = positions.map((pos, i) => ({
+                x: pos.x, z: pos.z, price: prices[i], purchased: false, tile: null,
+                number: `${floorNum}${String(i + 1).padStart(2, '0')}`,
+                floorIdx,
+            }));
+            slots.forEach((slot, i) => {
+                const tile = createPriceTile(slot.price);
+                tile.position.set(slot.x, height + 0.05, slot.z);
+                tile.visible = (i === 0);
+                scene.add(tile);
+                slot.tile = tile;
+            });
+            return slots;
+        }
+
+        function buildFloorCleanerSlots(floorIdx) {
+            const height = FLOOR_HEIGHTS[floorIdx];
+            const slots = [-16, -19, -22, -25, -28].map((z, i) => ({
+                x: STAIR.cx, z, price: 100 * (i + 1), purchased: false, tile: null, floorIdx,
+            }));
+            slots.forEach((slot, i) => {
+                const tile = createCleanerPriceTile(slot.price);
+                tile.position.set(slot.x, height + 0.05, slot.z);
+                tile.visible = (i === 0);
+                scene.add(tile);
+                slot.tile = tile;
+            });
+            return slots;
+        }
+
+        function buildPurchasedRoomOnFloor(slot) {
+            const colors = [0xd63031, 0x0984e3, 0x00b894, 0xe17055, 0x6c5ce7, 0xfdcb6e, 0x00cec9, 0xe84393, 0x636e72, 0x0fb9b1];
+            const accent = colors[Math.floor(Math.random() * colors.length)];
+            const height = FLOOR_HEIGHTS[slot.floorIdx];
+            createHotelRoom(slot.x, slot.z, slot.number, accent, height, slot.floorIdx);
+            roomPositions[slot.number] = { x: slot.x, z: slot.z, floorIdx: slot.floorIdx };
+            allRoomNumbers.push(slot.number);
+        }
+
+        function tryPurchaseNextRoomOnFloor(slots, floorIdx) {
+            if (Math.abs(playerGroup.position.y - FLOOR_HEIGHTS[floorIdx]) > 1.5) return;
+            const nextSlot = slots.find(s => !s.purchased);
+            if (!nextSlot) return;
+            if (horizontalDist(playerGroup.position, { x: nextSlot.x, z: nextSlot.z }) >= 4) return;
+            if (spendMoney(nextSlot.price)) {
+                nextSlot.purchased = true;
+                nextSlot.tile.visible = false;
+                buildPurchasedRoomOnFloor(nextSlot);
+                showPrompt(`נרכש חדר ${nextSlot.number}! 🎉`);
+                const idx = slots.indexOf(nextSlot);
+                if (slots[idx + 1]) slots[idx + 1].tile.visible = true;
+                saveGame();
+            } else {
+                showPrompt(`אין מספיק כסף לקניית חדר ${nextSlot.number}! חסר לך ${nextSlot.price - money} 💵`);
+            }
+        }
+
+        function tryPurchaseNextCleanerOnFloor(slots, floorIdx) {
+            if (Math.abs(playerGroup.position.y - FLOOR_HEIGHTS[floorIdx]) > 1.5) return;
+            const nextSlot = slots.find(s => !s.purchased);
+            if (!nextSlot) return;
+            if (horizontalDist(playerGroup.position, { x: nextSlot.x, z: nextSlot.z }) >= 4) return;
+            if (spendMoney(nextSlot.price)) {
+                nextSlot.purchased = true;
+                nextSlot.tile.visible = false;
+                hireCleaner(nextSlot, FLOOR_HEIGHTS[floorIdx], floorIdx);
+                showPrompt('נשכרה מנקה חדשה! 🧹');
+                const idx = slots.indexOf(nextSlot);
+                if (slots[idx + 1]) slots[idx + 1].tile.visible = true;
+                saveGame();
+            } else {
+                showPrompt(`אין מספיק כסף לשכירת מנקה! חסר לך ${nextSlot.price - money} 💵`);
+            }
+        }
+
+        const allFloorRoomSlots = [];    // אינדקס 0 = קומה 3, 1 = קומה 4 ... 6 = קומה 9
+        const allFloorCleanerSlots = [];
+        for (let f = 2; f <= 8; f++) {
+            allFloorRoomSlots.push(buildFloorRoomSlots(f));
+            allFloorCleanerSlots.push(buildFloorCleanerSlots(f));
+        }
+
+        function tryPurchaseOnAllUpperFloors() {
+            for (let i = 0; i < allFloorRoomSlots.length; i++) {
+                tryPurchaseNextRoomOnFloor(allFloorRoomSlots[i], i + 2);
+                tryPurchaseNextCleanerOnFloor(allFloorCleanerSlots[i], i + 2);
+            }
+        }
+
         function updateCleaners(delta) {
             cleaners.forEach(c => {
                 if (c.state === 'idle') {
                     let targetRoom = null;
                     dirtyRooms.forEach((spots, room) => {
                         if (targetRoom || roomsBeingCleaned.has(room)) return;
+                        const rp = roomPositions[room];
+                        if (!rp || rp.floorIdx !== c.floorIdx) return;
                         targetRoom = room;
                     });
                     if (targetRoom && roomPositions[targetRoom]) {
                         roomsBeingCleaned.add(targetRoom);
                         c.targetRoom = targetRoom;
                         const roomPos = roomPositions[targetRoom];
-                        c.path = [{ x: roomPos.x, z: roomPos.z }];
+                        c.path = [{ x: roomPos.x, y: c.homePos.y, z: roomPos.z }];
                         c.pathIndex = 0;
                         c.state = 'toRoom';
                         showPrompt(`המנקה יוצאת לנקות את חדר ${targetRoom}! 🧹`);
@@ -1101,8 +1544,7 @@
                     const wp = c.path[c.pathIndex];
                     const dir = new THREE.Vector3(wp.x - c.mesh.position.x, 0, wp.z - c.mesh.position.z);
                     const dist = dir.length();
-                    const targetY = getFloorHeight(c.mesh.position.x, c.mesh.position.z);
-                    c.mesh.position.y += (targetY - c.mesh.position.y) * 0.15;
+                    c.mesh.position.y += (wp.y - c.mesh.position.y) * 0.15;
                     if (dist < 0.4) {
                         c.pathIndex++;
                         if (c.pathIndex >= c.path.length) {
@@ -1130,7 +1572,7 @@
                         }
                         roomsBeingCleaned.delete(room);
                         c.targetRoom = null;
-                        c.path = [{ x: c.homePos.x, z: c.homePos.z }];
+                        c.path = [{ x: c.homePos.x, y: c.homePos.y, z: c.homePos.z }];
                         c.pathIndex = 0;
                         c.state = 'toHome';
                     }
@@ -1291,7 +1733,257 @@
             });
         }
 
-        // קצב הגעת האורחים - מתחיל איטי יחסית, ועולה מעט עם כל אורח שקיבל חדר,
+        // ==========================================================
+        // שירותים - דלת פתוחה תמיד ליד הכניסה (צד ימין, קומת קרקע)
+        // חדר נייר טואלט + 3 תאים. אורחים משתמשים בתאים מדי פעם,
+        // ואז צריך למלא נייר טואלט כדי שהתא יהיה שוב שמיש.
+        // ==========================================================
+        const restroomFloorMat = new THREE.MeshStandardMaterial({ color: 0xdcecec, roughness: 0.5 });
+        const stallWallMat = new THREE.MeshStandardMaterial({ color: 0xb8c9c9, roughness: 0.6 });
+        const toiletMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3 });
+        const paperRollMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9 });
+
+        // רצפת השירותים - סימון ויזואלי לאזור
+        const restroomFloor = new THREE.Mesh(new THREE.PlaneGeometry(14, 14), restroomFloorMat);
+        restroomFloor.rotation.x = -Math.PI / 2;
+        restroomFloor.position.set(37, 0.02, 33);
+        restroomFloor.receiveShadow = true;
+        scene.add(restroomFloor);
+
+        // מסגרת דלת פתוחה + שלט "שירותים"
+        function createOpenDoorFrame(x, z, rotY, label) {
+            const group = new THREE.Group();
+            const frameMat = new THREE.MeshStandardMaterial({ color: 0x6b3f2a, roughness: 0.6 });
+            const top = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.3, 0.25), frameMat);
+            top.position.y = 3.4;
+            const sideL = new THREE.Mesh(new THREE.BoxGeometry(0.25, 3.4, 0.25), frameMat);
+            sideL.position.set(-1.5, 1.7, 0);
+            const sideR = sideL.clone();
+            sideR.position.set(1.5, 1.7, 0);
+            group.add(top, sideL, sideR);
+
+            const canvas = document.createElement('canvas');
+            canvas.width = 256; canvas.height = 80;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#2d1b4e';
+            ctx.fillRect(0, 0, 256, 80);
+            ctx.strokeStyle = '#d4af37'; ctx.lineWidth = 4; ctx.strokeRect(3, 3, 250, 74);
+            ctx.fillStyle = '#fbc531';
+            ctx.font = 'bold 26px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(label, 128, 40);
+            const texture = new THREE.CanvasTexture(canvas);
+            const sign = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 0.7), new THREE.MeshStandardMaterial({ map: texture }));
+            sign.position.set(0, 3.9, 0);
+            group.add(sign);
+
+            group.position.set(x, 0, z);
+            group.rotation.y = rotY;
+            scene.add(group);
+        }
+        createOpenDoorFrame(37, 40, 0, '🚻 שירותים');
+
+        // חדר נייר טואלט - ממול לשירותים (לא צמוד להם), מתקן אינסופי לקיחת נייר
+        const TOILET_SUPPLY_POS = { x: 18, z: 40 };
+        function createSupplyNook(x, z, rotY) {
+            const group = new THREE.Group();
+            const cabinet = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.4, 0.6), new THREE.MeshStandardMaterial({ color: 0xe8ded0, roughness: 0.6 }));
+            cabinet.position.set(0, 0.7, 0);
+            cabinet.castShadow = true;
+            group.add(cabinet);
+            for (let i = 0; i < 5; i++) {
+                const roll = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.22, 14), paperRollMat);
+                roll.rotation.z = Math.PI / 2;
+                roll.position.set(-0.5 + (i % 3) * 0.5, 1.55 + Math.floor(i / 3) * 0.24, 0);
+                group.add(roll);
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = 200; canvas.height = 70;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#2d1b4e';
+            ctx.fillRect(0, 0, 200, 70);
+            ctx.strokeStyle = '#d4af37'; ctx.lineWidth = 3; ctx.strokeRect(3, 3, 194, 64);
+            ctx.fillStyle = '#fbc531';
+            ctx.font = 'bold 20px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('🧻 חדר נייר טואלט', 100, 35);
+            const texture = new THREE.CanvasTexture(canvas);
+            const sign = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 0.6), new THREE.MeshStandardMaterial({ map: texture }));
+            sign.position.set(0, 2.1, 0);
+            group.add(sign);
+            group.position.set(x, 0, z);
+            group.rotation.y = rotY || 0;
+            scene.add(group);
+        }
+        createSupplyNook(TOILET_SUPPLY_POS.x, TOILET_SUPPLY_POS.z, -Math.PI / 2); // פונה לכיוון השירותים
+
+        function createToiletIndicator() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 128; canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = 'rgba(214,48,49,0.92)';
+            ctx.beginPath();
+            ctx.arc(64, 64, 55, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.font = '58px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('🧻', 64, 68);
+            const texture = new THREE.CanvasTexture(canvas);
+            const mesh = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 0.8), new THREE.MeshBasicMaterial({ map: texture, transparent: true }));
+            return mesh;
+        }
+
+        function createStall(x, z) {
+            const group = new THREE.Group();
+            const leftWall = new THREE.Mesh(new THREE.BoxGeometry(0.15, 1.6, 1.6), stallWallMat);
+            leftWall.position.set(-0.9, 0.8, 0);
+            const rightWall = leftWall.clone();
+            rightWall.position.set(0.9, 0.8, 0);
+            const backWall = new THREE.Mesh(new THREE.BoxGeometry(1.95, 1.6, 0.15), stallWallMat);
+            backWall.position.set(0, 0.8, -0.8);
+            const toilet = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.32, 0.5, 16), toiletMat);
+            toilet.position.set(0, 0.25, -0.4);
+            const tank = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.35, 0.18), toiletMat);
+            tank.position.set(0, 0.75, -0.7);
+            [leftWall, rightWall, backWall, toilet, tank].forEach(m => { m.castShadow = true; m.receiveShadow = true; group.add(m); });
+            group.position.set(x, 0, z);
+            scene.add(group);
+        }
+
+        const toiletStalls = [
+            { id: 0, x: 34, z: 29, hasPaper: true, occupied: false, indicatorMesh: null },
+            { id: 1, x: 37, z: 29, hasPaper: true, occupied: false, indicatorMesh: null },
+            { id: 2, x: 40, z: 29, hasPaper: true, occupied: false, indicatorMesh: null },
+        ];
+        toiletStalls.forEach(s => {
+            createStall(s.x, s.z);
+            const indicator = createToiletIndicator();
+            indicator.position.set(s.x, 2.1, s.z);
+            indicator.visible = false;
+            scene.add(indicator);
+            s.indicatorMesh = indicator;
+        });
+
+        function updateStallIndicator(stall) {
+            stall.indicatorMesh.visible = !stall.hasPaper;
+        }
+
+        function findNearestEmptyStall() {
+            let best = null, bestDist = Infinity;
+            toiletStalls.forEach(s => {
+                if (s.hasPaper) return;
+                const d = horizontalDist(playerGroup.position, s);
+                if (d < 2.2 && d < bestDist) { bestDist = d; best = s; }
+            });
+            return best;
+        }
+
+        // --- נייר טואלט שהשחקן נושא ביד (עד 3) ---
+        let playerToiletPaper = 0;
+        const playerToiletPaperMeshes = [];
+        function updateToiletPaperHandVisual() {
+            while (playerToiletPaperMeshes.length) {
+                playerGroup.remove(playerToiletPaperMeshes.pop());
+            }
+            for (let i = 0; i < playerToiletPaper; i++) {
+                const roll = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.18, 12), paperRollMat);
+                roll.rotation.z = Math.PI / 2;
+                roll.position.set(0.85, 1.5 + i * 0.24, 0.1);
+                playerGroup.add(roll);
+                playerToiletPaperMeshes.push(roll);
+            }
+        }
+
+        function tryTakeToiletPaper() {
+            if (horizontalDist(playerGroup.position, TOILET_SUPPLY_POS) >= 2.5) return;
+            if (playerToiletPaper >= 3) {
+                showPrompt('אתה כבר מחזיק 3 גלילי נייר טואלט - זה המקסימום! 🧻');
+                return;
+            }
+            playerToiletPaper++;
+            updateToiletPaperHandVisual();
+            showPrompt(`לקחת נייר טואלט! (${playerToiletPaper}/3) 🧻`);
+            saveGame();
+        }
+
+        function performRestock(stall) {
+            if (playerToiletPaper <= 0) {
+                showPrompt('אין לך נייר טואלט! לך תיקח נייר טואלט מחדר נייר הטואלט 🧻');
+                return;
+            }
+            playerToiletPaper--;
+            updateToiletPaperHandVisual();
+            stall.hasPaper = true;
+            updateStallIndicator(stall);
+            showPrompt('מילאת נייר טואלט בתא! 🧻');
+            saveGame();
+        }
+
+        // --- אורחים "מבקרים" בשירותים מדי פעם - נכנסים דרך הכניסה, משתמשים בתא 3 שניות, ויוצאים ---
+        const toiletVisitors = [];
+        let toiletVisitTimer = 10 + Math.random() * 8;
+
+        function updateToiletVisitors(delta) {
+            toiletVisitTimer -= delta;
+            if (toiletVisitTimer <= 0) {
+                const freeStall = toiletStalls.find(s => s.hasPaper && !s.occupied);
+                if (freeStall) {
+                    freeStall.occupied = true;
+                    const mesh = createGuestMesh();
+                    mesh.position.copy(DOOR_POS);
+                    scene.add(mesh);
+                    toiletVisitors.push({ mesh, state: 'toStall', stall: freeStall, timer: 0 });
+                }
+                toiletVisitTimer = 10 + Math.random() * 8;
+            }
+
+            toiletVisitors.forEach(v => {
+                if (v.state === 'toStall') {
+                    const dir = new THREE.Vector3(v.stall.x - v.mesh.position.x, 0, v.stall.z - v.mesh.position.z);
+                    const dist = dir.length();
+                    if (dist < 0.5) {
+                        v.state = 'inStall';
+                        v.timer = 3;
+                        v.mesh.visible = false;
+                    } else {
+                        dir.normalize();
+                        v.mesh.position.addScaledVector(dir, Math.min(0.06, dist));
+                        v.mesh.rotation.y = Math.atan2(dir.x, dir.z);
+                    }
+                } else if (v.state === 'inStall') {
+                    v.timer -= delta;
+                    if (v.timer <= 0) {
+                        v.stall.hasPaper = false;
+                        v.stall.occupied = false;
+                        updateStallIndicator(v.stall);
+                        v.mesh.visible = true;
+                        v.state = 'toExit';
+                    }
+                } else if (v.state === 'toExit') {
+                    const dir = new THREE.Vector3(DOOR_POS.x - v.mesh.position.x, 0, DOOR_POS.z - v.mesh.position.z);
+                    const dist = dir.length();
+                    if (dist < 0.6) {
+                        v.state = 'done';
+                    } else {
+                        dir.normalize();
+                        v.mesh.position.addScaledVector(dir, Math.min(0.06, dist));
+                        v.mesh.rotation.y = Math.atan2(dir.x, dir.z);
+                    }
+                }
+            });
+
+            for (let i = toiletVisitors.length - 1; i >= 0; i--) {
+                if (toiletVisitors[i].state === 'done') {
+                    scene.remove(toiletVisitors[i].mesh);
+                    toiletVisitors.splice(i, 1);
+                }
+            }
+        }
+
+
         // עד לקצב המקסימלי (המהיר) שכבר קיים במשחק. ההתקדמות נשמרת גם אחרי רענון.
         const RATE_START_MIN = 5, RATE_START_MAX = 7;      // קצב התחלתי (איטי)
         const RATE_END_MIN = 1.2, RATE_END_MAX = 2.0;      // קצב מקסימלי (המהיר שהיה)
@@ -1318,6 +2010,10 @@
                     purchasedCleaners: cleanerSlots.map(s => s.purchased),
                     purchasedReceptionists: receptionistSlots.map(s => s.purchased),
                     guestsServedCount,
+                    playerToiletPaper,
+                    stallsHasPaper: toiletStalls.map(s => s.hasPaper),
+                    upperFloorsRooms: allFloorRoomSlots.map(slots => slots.map(s => s.purchased)),
+                    upperFloorsCleaners: allFloorCleanerSlots.map(slots => slots.map(s => s.purchased)),
                 };
                 localStorage.setItem(SAVE_KEY, JSON.stringify(state));
             } catch (e) {
@@ -1377,6 +2073,55 @@
                     const nextReceptionistSlot = receptionistSlots.find(s => !s.purchased);
                     receptionistSlots.forEach(s => { if (!s.purchased) s.tile.visible = false; });
                     if (nextReceptionistSlot) nextReceptionistSlot.tile.visible = true;
+                }
+
+                if (typeof state.playerToiletPaper === 'number') {
+                    playerToiletPaper = state.playerToiletPaper;
+                    updateToiletPaperHandVisual();
+                }
+
+                if (Array.isArray(state.stallsHasPaper)) {
+                    state.stallsHasPaper.forEach((hasPaper, i) => {
+                        if (toiletStalls[i]) {
+                            toiletStalls[i].hasPaper = hasPaper;
+                            updateStallIndicator(toiletStalls[i]);
+                        }
+                    });
+                }
+
+                if (Array.isArray(state.upperFloorsRooms)) {
+                    state.upperFloorsRooms.forEach((purchasedArr, floorPos) => {
+                        const slots = allFloorRoomSlots[floorPos];
+                        if (!slots || !Array.isArray(purchasedArr)) return;
+                        purchasedArr.forEach((purchased, i) => {
+                            if (purchased && slots[i] && !slots[i].purchased) {
+                                slots[i].purchased = true;
+                                slots[i].tile.visible = false;
+                                buildPurchasedRoomOnFloor(slots[i]);
+                            }
+                        });
+                        const nextSlot = slots.find(s => !s.purchased);
+                        slots.forEach(s => { if (!s.purchased) s.tile.visible = false; });
+                        if (nextSlot) nextSlot.tile.visible = true;
+                    });
+                }
+
+                if (Array.isArray(state.upperFloorsCleaners)) {
+                    state.upperFloorsCleaners.forEach((purchasedArr, floorPos) => {
+                        const slots = allFloorCleanerSlots[floorPos];
+                        if (!slots || !Array.isArray(purchasedArr)) return;
+                        const floorIdx = floorPos + 2;
+                        purchasedArr.forEach((purchased, i) => {
+                            if (purchased && slots[i] && !slots[i].purchased) {
+                                slots[i].purchased = true;
+                                slots[i].tile.visible = false;
+                                hireCleaner(slots[i], FLOOR_HEIGHTS[floorIdx], floorIdx);
+                            }
+                        });
+                        const nextSlot = slots.find(s => !s.purchased);
+                        slots.forEach(s => { if (!s.purchased) s.tile.visible = false; });
+                        if (nextSlot) nextSlot.tile.visible = true;
+                    });
                 }
             } catch (e) {
                 console.warn('טעינת המשחק נכשלה', e);
@@ -1504,21 +2249,38 @@
             deskQueue.push(guest);
         }
 
-        function buildPathToRoom(room) {
-            const roomPos = roomPositions[room];
+        // בונה את קטע המדרגות בין קומה fromIdx לקומה fromIdx+1 (שתי נקודות: תחתית ואז ראש)
+        function stairFlightWaypoints(fromIdx) {
+            const x = UP_STAIR_X[fromIdx];
+            const zBase = fromIdx === 0 ? STAIR.cz : FLOOR_ZMAX;
+            const zTop = zBase - STAIR.totalRun;
             return [
-                { x: STAIR.cx, z: STAIR.cz },                    // בסיס המדרגות (קומת קרקע)
-                { x: STAIR.cx, z: STAIR.cz - STAIR.totalRun },   // ראש המדרגות (קומה 2)
-                { x: roomPos.x, z: roomPos.z },                  // החדר עצמו
+                { x, y: FLOOR_HEIGHTS[fromIdx], z: zBase },
+                { x, y: FLOOR_HEIGHTS[fromIdx + 1], z: zTop },
             ];
         }
 
-        function buildPathToExit() {
-            return [
-                { x: STAIR.cx, z: STAIR.cz - STAIR.totalRun },   // ראש המדרגות
-                { x: STAIR.cx, z: STAIR.cz },                    // בסיס המדרגות
-                { x: DOOR_POS.x, z: DOOR_POS.z },                // הדלת
-            ];
+        function buildPathToRoom(room) {
+            const roomPos = roomPositions[room];
+            const targetFloor = roomPos.floorIdx;
+            const waypoints = [];
+            for (let f = 0; f < targetFloor; f++) {
+                waypoints.push(...stairFlightWaypoints(f));
+            }
+            waypoints.push({ x: roomPos.x, y: FLOOR_HEIGHTS[targetFloor], z: roomPos.z });
+            return waypoints;
+        }
+
+        function buildPathToExit(room) {
+            const roomPos = roomPositions[room];
+            const fromFloor = roomPos.floorIdx;
+            const waypoints = [];
+            for (let f = fromFloor; f > 0; f--) {
+                const flight = stairFlightWaypoints(f - 1);
+                waypoints.push(flight[1], flight[0]); // יורדים - הפוך מהעלייה
+            }
+            waypoints.push({ x: DOOR_POS.x, y: 0, z: DOOR_POS.z });
+            return waypoints;
         }
 
         function updateGuests(delta) {
@@ -1540,14 +2302,11 @@
                     }
                 } else if (g.state === 'toRoom' || g.state === 'toExit') {
                     const wp = g.path[g.pathIndex];
-                    const dir = new THREE.Vector3(wp.x - g.mesh.position.x, 0, wp.z - g.mesh.position.z);
+                    const dir = new THREE.Vector3(wp.x - g.mesh.position.x, wp.y - g.mesh.position.y, wp.z - g.mesh.position.z);
                     const dist = dir.length();
 
-                    // הגובה נגזר מאותה פונקציית גובה-רצפה שמשתמש בה השחקן - כך האורח באמת מטפס במדרגות
-                    const targetY = getFloorHeight(g.mesh.position.x, g.mesh.position.z);
-                    g.mesh.position.y += (targetY - g.mesh.position.y) * 0.15;
-
                     if (dist < 0.4) {
+                        g.mesh.position.set(wp.x, wp.y, wp.z);
                         g.pathIndex++;
                         if (g.pathIndex >= g.path.length) {
                             if (g.state === 'toRoom') {
@@ -1572,7 +2331,7 @@
                         occupiedRooms.delete(g.room);
                         createDirtySpots(g.room);
                         g.state = 'toExit';
-                        g.path = buildPathToExit();
+                        g.path = buildPathToExit(g.room);
                         g.pathIndex = 0;
                     }
                 }
@@ -1628,6 +2387,7 @@
 
         function createDirtySpots(room) {
             const roomPos = roomPositions[room];
+            const floorH = FLOOR_HEIGHTS[roomPos.floorIdx];
             const offsets = [
                 { dx: 1.8, dz: 1.3 },
                 { dx: 1.8, dz: -1.3 },
@@ -1637,9 +2397,9 @@
                 const x = roomPos.x + off.dx;
                 const z = roomPos.z + off.dz;
                 const mesh = createDirtySpotMesh();
-                mesh.position.set(x, MEZZ.height + 0.03, z);
+                mesh.position.set(x, floorH + 0.03, z);
                 scene.add(mesh);
-                return { mesh, cleaned: false, x, z };
+                return { mesh, cleaned: false, x, z, y: floorH };
             });
             dirtyRooms.set(room, spots);
         }
@@ -1649,6 +2409,7 @@
             dirtyRooms.forEach((spots, room) => {
                 spots.forEach(spot => {
                     if (spot.cleaned) return;
+                    if (Math.abs(playerGroup.position.y - spot.y) > 1.5) return;
                     const d = horizontalDist(playerGroup.position, spot);
                     if (d < 2.5 && d < bestDist) {
                         bestDist = d;
@@ -1671,11 +2432,13 @@
             }
         }
 
-        // מחזיר מה הפעולה הזמינה כרגע לשחקן (צ'ק-אין / ניקיון / כלום)
+        // מחזיר מה הפעולה הזמינה כרגע לשחקן (צ'ק-אין / ניקיון / מילוי נייר טואלט / כלום)
         function getHoldContext() {
             if (isNearDeskWithGuest()) return { type: 'checkin' };
             const found = findNearestDirtySpot();
             if (found) return { type: 'clean', room: found.room, spot: found.spot };
+            const stall = findNearestEmptyStall();
+            if (stall) return { type: 'restock', stall };
             return null;
         }
 
@@ -1723,21 +2486,97 @@
         // --- מערכת תנועה (מקלדת) ---
         const move = { forward: false, backward: false, left: false, right: false };
 
+        // --- ג'ויסטיק וירטואלי לטלפון/טאבלט ---
+        const joystickBase = document.getElementById('joystick-base');
+        const joystickKnob = document.getElementById('joystick-knob');
+        let joystickTouchId = null;
+        const JOY_MAX = 45;
+
+        function resetJoystick() {
+            joystickKnob.style.top = '';
+            joystickKnob.style.left = '';
+            move.forward = move.backward = move.left = move.right = false;
+        }
+
+        function handleJoystickMove(clientX, clientY) {
+            const rect = joystickBase.getBoundingClientRect();
+            const cx = rect.left + rect.width / 2;
+            const cy = rect.top + rect.height / 2;
+            const dx = clientX - cx;
+            const dy = clientY - cy;
+            const dist = Math.min(JOY_MAX, Math.hypot(dx, dy));
+            const angle = Math.atan2(dy, dx);
+            const kx = Math.cos(angle) * dist;
+            const ky = Math.sin(angle) * dist;
+            joystickKnob.style.left = (33 + kx) + 'px';
+            joystickKnob.style.top = (33 + ky) + 'px';
+
+            const deadzone = 12;
+            move.forward = ky < -deadzone;
+            move.backward = ky > deadzone;
+            move.left = dx < -deadzone;
+            move.right = dx > deadzone;
+        }
+
+        const joystickEl = document.getElementById('mobile-joystick');
+        joystickEl.addEventListener('touchstart', (e) => {
+            const t = e.changedTouches[0];
+            joystickTouchId = t.identifier;
+            handleJoystickMove(t.clientX, t.clientY);
+            e.preventDefault();
+        }, { passive: false });
+        joystickEl.addEventListener('touchmove', (e) => {
+            for (const t of e.changedTouches) {
+                if (t.identifier === joystickTouchId) {
+                    handleJoystickMove(t.clientX, t.clientY);
+                    e.preventDefault();
+                }
+            }
+        }, { passive: false });
+        joystickEl.addEventListener('touchend', (e) => {
+            for (const t of e.changedTouches) {
+                if (t.identifier === joystickTouchId) {
+                    joystickTouchId = null;
+                    resetJoystick();
+                }
+            }
+        });
+        joystickEl.addEventListener('touchcancel', () => {
+            joystickTouchId = null;
+            resetJoystick();
+        });
+
+        function performTapAction() {
+            if (getHoldContext()) {
+                checkinHolding = true;
+            } else {
+                tryPurchaseNextRoom();
+                tryPurchaseNextCleaner();
+                tryPurchaseNextReceptionist();
+                tryTakeToiletPaper();
+                tryPurchaseOnAllUpperFloors();
+            }
+        }
+
+        // כפתור "פעולה" בטלפון/טאבלט - מבצע רק את פעולות הקנייה/לקיחה (לא צ'ק-אין/ניקוי/מילוי,
+        // שכבר יש להן כפתור החזקה משלהן שתומך גם במגע)
+        document.getElementById('mobile-action-btn').addEventListener('click', () => {
+            if (!getHoldContext()) {
+                tryPurchaseNextRoom();
+                tryPurchaseNextCleaner();
+                tryPurchaseNextReceptionist();
+                tryTakeToiletPaper();
+                tryPurchaseOnAllUpperFloors();
+            }
+        });
+
         window.addEventListener('keydown', (e) => {
             switch (e.code) {
                 case 'ArrowUp': case 'KeyW': move.forward = true; break;
                 case 'ArrowDown': case 'KeyS': move.backward = true; break;
                 case 'ArrowLeft': case 'KeyA': move.left = true; break;
                 case 'ArrowRight': case 'KeyD': move.right = true; break;
-                case 'KeyE':
-                    if (getHoldContext()) {
-                        checkinHolding = true;
-                    } else {
-                        tryPurchaseNextRoom();
-                        tryPurchaseNextCleaner();
-                        tryPurchaseNextReceptionist();
-                    }
-                    break;
+                case 'KeyE': performTapAction(); break;
             }
         });
         window.addEventListener('keyup', (e) => {
@@ -1834,8 +2673,8 @@
                 const nz = playerGroup.position.z + dir.z * dist;
 
                 // תזוזה בנפרד לכל ציר, כדי לאפשר "החלקה" לאורך קיר בלי להיתקע
-                if (!collidesWithWall(nx, playerGroup.position.z, playerRadius)) playerGroup.position.x = nx;
-                if (!collidesWithWall(playerGroup.position.x, nz, playerRadius)) playerGroup.position.z = nz;
+                if (!collidesWithWall(nx, playerGroup.position.z, playerRadius, playerCurrentFloorIdx)) playerGroup.position.x = nx;
+                if (!collidesWithWall(playerGroup.position.x, nz, playerRadius, playerCurrentFloorIdx)) playerGroup.position.z = nz;
             }
 
             if (move.forward) {
@@ -1869,11 +2708,23 @@
             updateGuests(delta);
             updateCleaners(delta);
             updateReceptionists(delta);
+            updateToiletVisitors(delta);
+            toiletStalls.forEach(s => { if (s.indicatorMesh.visible) s.indicatorMesh.lookAt(camera.position); });
 
-            // --- כפתור החזקה (צ'ק-אין ליד הדלפק / ניקוי חדר) ---
+            // --- מעלית: נכנסים אליה ונפתח תפריט קומות אוטומטית ---
+            const distToElevator = horizontalDist(playerGroup.position, ELEVATOR_POS);
+            if (distToElevator < 2 && playerGroup.position.y < 1) {
+                openElevatorMenu();
+            } else if (distToElevator > 3 && elevatorMenuOpen) {
+                closeElevatorMenu();
+            }
+
+            // --- כפתור החזקה (צ'ק-אין ליד הדלפק / ניקוי חדר / מילוי נייר טואלט) ---
             const holdContext = getHoldContext();
             document.getElementById('checkin-button').classList.toggle('hidden', !holdContext);
-            document.getElementById('checkin-icon').textContent = (holdContext && holdContext.type === 'clean') ? '🧹' : '🔑';
+            document.getElementById('checkin-icon').textContent = holdContext
+                ? (holdContext.type === 'clean' ? '🧹' : holdContext.type === 'restock' ? '🧻' : '🔑')
+                : '🔑';
             if (holdContext && checkinHolding) {
                 checkinProgress = Math.min(1, checkinProgress + delta / CHECKIN_HOLD_TIME);
                 if (checkinProgress >= 1) {
@@ -1881,6 +2732,8 @@
                         performCheckin();
                     } else if (holdContext.type === 'clean') {
                         performClean(holdContext.room, holdContext.spot);
+                    } else if (holdContext.type === 'restock') {
+                        performRestock(holdContext.stall);
                     }
                     checkinProgress = 0;
                     checkinHolding = false;
