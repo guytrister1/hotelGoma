@@ -31,6 +31,13 @@
             backdrop-filter: blur(5px);
             max-width: 300px;
             border: 2px solid #fbc531;
+            transform-origin: top right;
+        }
+        body.phone-mode #ui-layer {
+            transform: scale(0.5);
+        }
+        body.tablet-mode #ui-layer {
+            transform: scale(0.72);
         }
 
         h1 {
