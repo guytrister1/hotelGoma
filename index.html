@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="google-site-verification" content="A2unCFWXldS0fyKqPt6eBJwuPM3qJKaku1UzaCAD13U" />
     <title>מלון גומא - סימולטור תלת-ממדי</title>
     <style>
         body {
@@ -381,7 +380,7 @@
             <strong>מקשי שליטה:</strong><br>
             • תנועה: מקשי החיצים או W, A, S, D<br>
             • מעבר בין קומות: היכנס למעלית משמאל לשטיח הקבלה ובחר קומה<br>
-            • E: לקנות חדר או לשכור מנקה בכל אחת מקומות 2 עד 9, לשכור פקיד קבלה, לשכור מלצר בחדר האוכל, או לקחת נייר טואלט<br>
+            • E: לקנות חדר או לשכור מנקה בכל אחת מקומות 2 עד 9, לשכור פקיד קבלה, לשכור מלצר או לקחת/להגיש אוכל בחדר האוכל, או לקחת נייר טואלט<br>
             • על תא שירותים ריק: החזק E, או לחץ והחזק על כפתור נייר הטואלט 🧻 שתי שניות, כדי למלא<br>
             • ליד דלפק הקבלה: החזק E, או לחץ והחזק על כפתור המפתח 🔑 שתי שניות, כדי לתת חדר לאורח ממתין<br>
             • על מקום מלוכלך בחדר: החזק E, או לחץ והחזק על כפתור המטאטא 🧹 שתי שניות, כדי לנקות<br>
@@ -1174,6 +1173,63 @@
             });
         }
 
+        // --- השחקן יכול לקחת אוכל מהבופה (עד 3 מנות) ולהגיש בעצמו לסועד שממתין ---
+        const FOOD_PICKUP_POINTS = FOOD_TYPES.map((food, i) => ({
+            food, x: BUFFET_POS.x - 5 + i * 3.4, z: BUFFET_POS.z,
+        }));
+
+        let playerFoodItems = []; // עד 3 פריטי אוכל (אובייקטים מתוך FOOD_TYPES)
+        const playerFoodMeshes = [];
+
+        function updatePlayerFoodVisual() {
+            while (playerFoodMeshes.length) {
+                playerGroup.remove(playerFoodMeshes.pop());
+            }
+            playerFoodItems.forEach((food, i) => {
+                const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.13, 10, 10), new THREE.MeshStandardMaterial({ color: food.color, roughness: 0.7 }));
+                mesh.scale.set(1, 0.6, 1);
+                mesh.position.set(0.85, 1.5 + i * 0.24, 0.15);
+                playerGroup.add(mesh);
+                playerFoodMeshes.push(mesh);
+            });
+        }
+
+        function tryTakeFood() {
+            if (Math.abs(playerGroup.position.y - DINING_HEIGHT) > 1.5) return;
+            const point = FOOD_PICKUP_POINTS.find(p => horizontalDist(playerGroup.position, p) < 2.2);
+            if (!point) return;
+            if (playerFoodItems.length >= 3) {
+                showPrompt('אתה כבר מחזיק 3 מנות - זה המקסימום! 🍽️');
+                return;
+            }
+            playerFoodItems.push(point.food);
+            updatePlayerFoodVisual();
+            showPrompt(`לקחת ${point.food.name}! (${playerFoodItems.length}/3) ${point.food.icon}`);
+        }
+
+        function tryServeFoodToDiner() {
+            if (Math.abs(playerGroup.position.y - DINING_HEIGHT) > 1.5) return;
+            let nearest = null, bestDist = Infinity;
+            diners.forEach(d => {
+                if (d.state !== 'waitingOrder') return;
+                const dist = horizontalDist(playerGroup.position, d.table);
+                if (dist < 2.5 && dist < bestDist) { bestDist = dist; nearest = d; }
+            });
+            if (!nearest) return;
+            const idx = playerFoodItems.findIndex(f => f.name === nearest.food.name);
+            if (idx === -1) {
+                showPrompt(`אין לך ${nearest.food.name}! לך תיקח מהבופה ${nearest.food.icon}`);
+                return;
+            }
+            playerFoodItems.splice(idx, 1);
+            updatePlayerFoodVisual();
+            nearest.orderIcon.visible = false;
+            nearest.beingServed = false;
+            nearest.state = 'eating';
+            nearest.timer = 5;
+            showPrompt(`הגשת ${nearest.food.name} לאורח! ${nearest.food.icon}`);
+        }
+
 
         function createNumberPlaque(number) {
             const canvas = document.createElement('canvas');
@@ -1604,7 +1660,7 @@
             ctx.font = 'bold 18px Arial';
             ctx.fillText('לחץ E לקנייה', 128, 205);
             const texture = new THREE.CanvasTexture(canvas);
-            const tile = new THREE.Mesh(new THREE.PlaneGeometry(5, 5), new THREE.MeshStandardMaterial({ map: texture, transparent: true }));
+            const tile = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 2.6), new THREE.MeshStandardMaterial({ map: texture, transparent: true }));
             tile.rotation.x = -Math.PI / 2;
             return tile;
         }
@@ -1902,10 +1958,19 @@
             slot.tile = tile;
         });
 
+        // מיקומי עמידה קבועים מאחורי דלפק הקבלה עצמו (לא במקום הריבוע שנשאר בצד)
+        const RECEPTIONIST_DESK_POS = [
+            { x: -4, z: -4.3 },
+            { x: 0, z: -4.3 },
+            { x: 4, z: -4.3 },
+        ];
+
         function hireReceptionist(slot) {
+            const idx = receptionistSlots.indexOf(slot);
+            const deskPos = RECEPTIONIST_DESK_POS[idx] || RECEPTIONIST_DESK_POS[RECEPTIONIST_DESK_POS.length - 1];
             const mesh = createReceptionistMesh();
-            mesh.position.set(slot.x, 0, slot.z);
-            mesh.rotation.y = Math.PI / 2; // פונה לכיוון הדלפק/הלובי
+            mesh.position.set(deskPos.x, 0, deskPos.z);
+            mesh.rotation.y = 0; // פונה לכיוון הלובי/האורחים
             scene.add(mesh);
             receptionists.push({ mesh, state: 'idle', timer: 0, guest: null, room: null });
         }
@@ -2191,6 +2256,8 @@
                         updateStallIndicator(v.stall);
                         v.mesh.visible = true;
                         v.state = 'toExit';
+                        addMoney(5);
+                        showPrompt('אורח סיים בשירותים! +5 💵');
                     }
                 } else if (v.state === 'toExit') {
                     const dir = new THREE.Vector3(DOOR_POS.x - v.mesh.position.x, 0, DOOR_POS.z - v.mesh.position.z);
@@ -2230,7 +2297,7 @@
         // ==========================================================
         // שמירת התקדמות (localStorage) - נשמר גם אחרי רענון וגם אחרי סגירת הדפדפן
         // ==========================================================
-        const SAVE_KEY = 'hotelGomaSave_v1';
+        const SAVE_KEY = 'hotelGomaSave_v2';
 
         function saveGame() {
             try {
@@ -2784,6 +2851,8 @@
                 tryPurchaseNextReceptionist();
                 tryTakeToiletPaper();
                 tryPurchaseNextWaiter();
+                tryTakeFood();
+                tryServeFoodToDiner();
             }
         }
 
@@ -2796,6 +2865,8 @@
                 tryPurchaseNextReceptionist();
                 tryTakeToiletPaper();
                 tryPurchaseNextWaiter();
+                tryTakeFood();
+                tryServeFoodToDiner();
             }
         });
 
