@@ -379,7 +379,7 @@
         <div class="controls" id="controls-text">
             <strong>מקשי שליטה:</strong><br>
             • תנועה: מקשי החיצים או W, A, S, D<br>
-            • עלייה במדרגות: פשוט להיכנס אליהן<br>
+            • מעבר בין קומות: היכנס למעלית משמאל לשטיח הקבלה ובחר קומה<br>
             • E: לקנות חדר או לשכור מנקה בכל אחת מקומות 2 עד 9, לשכור פקיד קבלה, או לקחת נייר טואלט<br>
             • על תא שירותים ריק: החזק E, או לחץ והחזק על כפתור נייר הטואלט 🧻 שתי שניות, כדי למלא<br>
             • ליד דלפק הקבלה: החזק E, או לחץ והחזק על כפתור המפתח 🔑 שתי שניות, כדי לתת חדר לאורח ממתין<br>
@@ -677,7 +677,7 @@
         // ==========================================================
         // מעלית
         // ==========================================================
-        function createElevator(x, z) {
+        function createElevator(x, z, y = 0) {
             const group = new THREE.Group();
             const frame = new THREE.Mesh(new THREE.BoxGeometry(5, 8, 0.5), wallTrimMat);
             frame.position.set(0, 4, 0);
@@ -688,7 +688,7 @@
             const panel = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.6, 0.1), new THREE.MeshStandardMaterial({ color: 0x222222 }));
             panel.position.set(2.9, 4, 0.3);
             [frame, doorL, doorR, panel].forEach(m => { m.castShadow = true; group.add(m); });
-            group.position.set(x, 0, z);
+            group.position.set(x, y, z);
             scene.add(group);
         }
         createElevator(-44.5, -20);
@@ -701,6 +701,7 @@
         createSign('🛗 מעלית', ELEVATOR_POS.x, 8.3, ELEVATOR_POS.z + 0.35, 0);
 
         let elevatorMenuOpen = false;
+        let elevatorArmed = true; // רק כשיוצאים מטווח המעלית ונכנסים אליו שוב, המסך ייפתח מחדש
         function openElevatorMenu() {
             if (elevatorMenuOpen) return;
             elevatorMenuOpen = true;
@@ -718,6 +719,7 @@
             }
             playerCurrentFloorIdx = floorIdx;
             closeElevatorMenu();
+            elevatorArmed = false; // צריך לצאת מטווח המעלית לפני שהמסך יוכל להיפתח שוב
             showPrompt(`הגעת לקומה ${floorIdx + 1}! 🛗`);
         }
 
@@ -729,7 +731,10 @@
             btn.addEventListener('click', () => goToFloor(i));
             elevatorFloorButtonsEl.appendChild(btn);
         }
-        document.getElementById('elevator-close-btn').addEventListener('click', closeElevatorMenu);
+        document.getElementById('elevator-close-btn').addEventListener('click', () => {
+            closeElevatorMenu();
+            elevatorArmed = false;
+        });
 
         // ==========================================================
         // מדרגות → קומה שנייה (מזנין)
@@ -749,44 +754,7 @@
         const FLOOR_HEIGHTS = [0];
         for (let i = 1; i <= 8; i++) FLOOR_HEIGHTS.push(i * MEZZ.height);
 
-        // מיקום ה-X הייחודי של המדרגות העולות מכל קומה לקומה שמעליה (אינדקס = קומה יוצאת)
-        // אינדקס 0 = מקרקע לקומה 2 (המדרגות המקוריות, x=STAIR.cx). 1..7 = קומה2->3 ... קומה8->9
-        const UP_STAIR_X = [STAIR.cx, -36, -24, -12, 0, 12, 24, 36];
         const FLOOR_ZMAX = -10.4; // הקצה הקדמי של כל קומה (זהה לקומה 2)
-
-        function createStaircase() {
-            const group = new THREE.Group();
-
-            for (let i = 0; i < STAIR.steps; i++) {
-                const step = new THREE.Mesh(new THREE.BoxGeometry(STAIR.width, STAIR.stepH, STAIR.stepD), marbleStairMat);
-                step.position.set(0, i * STAIR.stepH + STAIR.stepH / 2, -i * STAIR.stepD);
-                step.castShadow = true;
-                step.receiveShadow = true;
-                group.add(step);
-            }
-
-            const railHeight = 1.0;
-            const dir = new THREE.Vector3(0, STAIR.totalRise, -STAIR.totalRun).normalize();
-            const railLength = Math.sqrt(STAIR.totalRise ** 2 + STAIR.totalRun ** 2);
-
-            [-STAIR.width / 2 + 0.12, STAIR.width / 2 - 0.12].forEach(railX => {
-                for (let i = 0; i <= STAIR.steps; i += 2) {
-                    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, railHeight, 10), columnGoldMat);
-                    post.position.set(railX, i * STAIR.stepH + railHeight / 2, -i * STAIR.stepD);
-                    post.castShadow = true;
-                    group.add(post);
-                }
-                const handrail = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, railLength, 12), columnGoldMat);
-                handrail.position.set(railX, railHeight + STAIR.totalRise / 2, -STAIR.totalRun / 2);
-                handrail.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
-                handrail.castShadow = true;
-                group.add(handrail);
-            });
-
-            group.position.set(STAIR.cx, 0, STAIR.cz);
-            scene.add(group);
-        }
-        createStaircase();
 
         function createSign(text, x, y, z, rotY) {
             const canvas = document.createElement('canvas');
@@ -806,10 +774,9 @@
             plaque.rotation.y = rotY;
             scene.add(plaque);
         }
-        createSign('⬆ לחדרים - קומה 2', STAIR.cx, 3, STAIR.cz + 0.3, 0);
 
         // ==========================================================
-        // מזנין (קומה שנייה) + מעקה בטיחות עם פתח למדרגות
+        // מזנין (קומה שנייה) + מעקה בטיחות
         // ==========================================================
         function createMezzanine() {
             const w = MEZZ.xMax - MEZZ.xMin, d = MEZZ.zMax - MEZZ.zMin;
@@ -830,21 +797,14 @@
 
             const railGroup = new THREE.Group();
             for (let px = MEZZ.xMin; px <= MEZZ.xMax; px += 2) {
-                if (px > STAIR.cx - STAIR.width / 2 - 1 && px < STAIR.cx + STAIR.width / 2 + 1) continue;
                 const post = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 1.1, 8), columnGoldMat);
                 post.position.set(px, MEZZ.height + 0.55, MEZZ.zMax);
                 railGroup.add(post);
             }
-            const gapStart = STAIR.cx - STAIR.width / 2 - 1;
-            const gapEnd = STAIR.cx + STAIR.width / 2 + 1;
-            const railSegL = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, gapStart - MEZZ.xMin, 12), columnGoldMat);
-            railSegL.rotation.z = Math.PI / 2;
-            railSegL.position.set((MEZZ.xMin + gapStart) / 2, MEZZ.height + 1.05, MEZZ.zMax);
-            railGroup.add(railSegL);
-            const railSegR = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, MEZZ.xMax - gapEnd, 12), columnGoldMat);
-            railSegR.rotation.z = Math.PI / 2;
-            railSegR.position.set((gapEnd + MEZZ.xMax) / 2, MEZZ.height + 1.05, MEZZ.zMax);
-            railGroup.add(railSegR);
+            const handrailFull = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, MEZZ.xMax - MEZZ.xMin, 12), columnGoldMat);
+            handrailFull.rotation.z = Math.PI / 2;
+            handrailFull.position.set((MEZZ.xMin + MEZZ.xMax) / 2, MEZZ.height + 1.05, MEZZ.zMax);
+            railGroup.add(handrailFull);
             scene.add(railGroup);
         }
         createMezzanine();
@@ -854,7 +814,6 @@
         // ==========================================================
         function buildFloorLevel(floorIdx) {
             const height = FLOOR_HEIGHTS[floorIdx];
-            const incomingX = UP_STAIR_X[floorIdx - 1];
             const w = MEZZ.xMax - MEZZ.xMin, d = FLOOR_ZMAX - MEZZ.zMin;
             const cx = (MEZZ.xMin + MEZZ.xMax) / 2, cz = (MEZZ.zMin + FLOOR_ZMAX) / 2;
 
@@ -873,38 +832,24 @@
 
             const railGroup = new THREE.Group();
             for (let px = MEZZ.xMin; px <= MEZZ.xMax; px += 2) {
-                if (px > incomingX - STAIR.width / 2 - 1 && px < incomingX + STAIR.width / 2 + 1) continue;
                 const post = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 1.1, 8), columnGoldMat);
                 post.position.set(px, height + 0.55, FLOOR_ZMAX);
                 railGroup.add(post);
             }
-            const gapStart = incomingX - STAIR.width / 2 - 1;
-            const gapEnd = incomingX + STAIR.width / 2 + 1;
-            const railSegL = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, gapStart - MEZZ.xMin, 12), columnGoldMat);
-            railSegL.rotation.z = Math.PI / 2;
-            railSegL.position.set((MEZZ.xMin + gapStart) / 2, height + 1.05, FLOOR_ZMAX);
-            railGroup.add(railSegL);
-            const railSegR = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, MEZZ.xMax - gapEnd, 12), columnGoldMat);
-            railSegR.rotation.z = Math.PI / 2;
-            railSegR.position.set((gapEnd + MEZZ.xMax) / 2, height + 1.05, FLOOR_ZMAX);
-            railGroup.add(railSegR);
+            const handrailFull = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, MEZZ.xMax - MEZZ.xMin, 12), columnGoldMat);
+            handrailFull.rotation.z = Math.PI / 2;
+            handrailFull.position.set((MEZZ.xMin + MEZZ.xMax) / 2, height + 1.05, FLOOR_ZMAX);
+            railGroup.add(handrailFull);
             scene.add(railGroup);
-
-            // מדרגות עולות מהקומה הזו לקומה שמעליה (אם יש כזו)
-            if (floorIdx <= 7) {
-                const x = UP_STAIR_X[floorIdx];
-                const group = new THREE.Group();
-                for (let i = 0; i < STAIR.steps; i++) {
-                    const step = new THREE.Mesh(new THREE.BoxGeometry(STAIR.width, STAIR.stepH, STAIR.stepD), marbleStairMat);
-                    step.position.set(x, height + i * STAIR.stepH + STAIR.stepH / 2, FLOOR_ZMAX - i * STAIR.stepD);
-                    step.castShadow = true; step.receiveShadow = true;
-                    group.add(step);
-                }
-                scene.add(group);
-                createSign(`⬆ לקומה ${floorIdx + 2}`, x, height + 3, FLOOR_ZMAX + 0.3, 0);
-            }
         }
         for (let f = 2; f <= 8; f++) buildFloorLevel(f);
+
+        // מעלית בכל קומה (2 עד 9) - באותה נקודת נחיתה, כדי שאפשר גם לחזור ממנה
+        for (let f = 1; f <= 8; f++) {
+            createElevator(FLOOR_LANDING_POS.x, FLOOR_LANDING_POS.z, FLOOR_HEIGHTS[f]);
+            createSign('🛗 מעלית', FLOOR_LANDING_POS.x, FLOOR_HEIGHTS[f] + 8.3, FLOOR_LANDING_POS.z + 0.35, 0);
+        }
+
 
         function createNumberPlaque(number) {
             const canvas = document.createElement('canvas');
@@ -1053,24 +998,11 @@
         }
 
         // ==========================================================
-        // מערכת גובה קרקע - תומכת בכל הקומות (כולן חולקות את אותו שטח x/z,
-        // ולכן מחוץ למדרגות עצמן נשמר "הקומה הנוכחית" של השחקן כמצב מפורש)
+        // מערכת גובה קרקע - אין יותר מדרגות פיזיות; המעבר בין קומות
+        // קורה רק דרך המעלית (שמעדכנת playerCurrentFloorIdx ישירות)
         // ==========================================================
         let playerCurrentFloorIdx = 0;
         function getFloorHeight(x, z) {
-            for (let i = 0; i < UP_STAIR_X.length; i++) {
-                const stx = UP_STAIR_X[i];
-                const width = i === 0 ? STAIR.width : 8;
-                const zBase = i === 0 ? STAIR.cz : FLOOR_ZMAX;
-                const zTop = zBase - STAIR.totalRun;
-                if (x > stx - width / 2 && x < stx + width / 2 && z <= zBase && z >= zTop) {
-                    const t = (zBase - z) / STAIR.totalRun;
-                    const h0 = FLOOR_HEIGHTS[i], h1 = FLOOR_HEIGHTS[i + 1];
-                    if (t > 0.95) playerCurrentFloorIdx = i + 1;
-                    else if (t < 0.05) playerCurrentFloorIdx = i;
-                    return h0 + t * (h1 - h0);
-                }
-            }
             if (x > MEZZ.xMin && x < MEZZ.xMax && z > MEZZ.zMin && z < FLOOR_ZMAX) {
                 return FLOOR_HEIGHTS[playerCurrentFloorIdx];
             }
@@ -1196,20 +1128,24 @@
         updateMoneyUI();
 
         // ==========================================================
-        // חדרים לרכישה בקומה השנייה (10 חדרים נוספים)
-        // כל חדר עולה 50 יותר מהתוספת של החדר הקודם: 50, 100, 200, 350, 550...
-        // רק המחיר של החדר הבא בתור מוצג על הרצפה
+        // חדרים לרכישה - קומה 2 עד קומה 9
+        // המחירים ממשיכים ברצף גלובלי אחד על פני כל הקומות (לא מתאפסים בכל קומה)
         // ==========================================================
-        const purchasableRoomPrices = (() => {
+        function computeRoomLadder(count) {
             const arr = [];
             let prev = 0;
-            for (let n = 1; n <= 10; n++) {
+            for (let n = 1; n <= count; n++) {
                 const price = n === 1 ? 50 : prev + 50 * (n - 1);
                 arr.push(price);
                 prev = price;
             }
             return arr;
-        })();
+        }
+        const TOTAL_ROOM_SLOTS = 10 + 7 * 13;
+        const GLOBAL_ROOM_PRICES = computeRoomLadder(TOTAL_ROOM_SLOTS);
+        const TOTAL_CLEANER_SLOTS = 5 + 7 * 5;
+        const GLOBAL_CLEANER_PRICES = [];
+        for (let n = 1; n <= TOTAL_CLEANER_SLOTS; n++) GLOBAL_CLEANER_PRICES.push(100 * n);
 
         const newRoomSlots = [
             { x: 3, z: -41, number: '204' },
@@ -1222,7 +1158,7 @@
             { x: -33, z: -31, number: '211' },
             { x: 15, z: -31, number: '212' },
             { x: 27, z: -31, number: '213' },
-        ].map((slot, i) => ({ ...slot, price: purchasableRoomPrices[i], purchased: false, tile: null }));
+        ].map((slot, i) => ({ ...slot, price: GLOBAL_ROOM_PRICES[i], purchased: false, tile: null, floorIdx: 1 }));
 
         function createPriceTile(price) {
             const canvas = document.createElement('canvas');
@@ -1247,38 +1183,21 @@
             return tile;
         }
 
-        newRoomSlots.forEach((slot, i) => {
+        newRoomSlots.forEach(slot => {
             const tile = createPriceTile(slot.price);
             tile.position.set(slot.x, MEZZ.height + 0.05, slot.z);
-            tile.visible = (i === 0); // רק החדר הבא בתור מוצג
+            tile.visible = false; // הנראות נקבעת ע"י refreshRoomTileVisibility()
             scene.add(tile);
             slot.tile = tile;
         });
 
-        function buildPurchasedRoom(slot) {
+        function buildPurchasedRoomOnFloor(slot) {
             const colors = [0xd63031, 0x0984e3, 0x00b894, 0xe17055, 0x6c5ce7, 0xfdcb6e, 0x00cec9, 0xe84393, 0x636e72, 0x0fb9b1];
             const accent = colors[Math.floor(Math.random() * colors.length)];
-            createHotelRoom(slot.x, slot.z, slot.number, accent);
-            roomPositions[slot.number] = { x: slot.x, z: slot.z, floorIdx: 1 };
+            const height = FLOOR_HEIGHTS[slot.floorIdx];
+            createHotelRoom(slot.x, slot.z, slot.number, accent, height, slot.floorIdx);
+            roomPositions[slot.number] = { x: slot.x, z: slot.z, floorIdx: slot.floorIdx };
             allRoomNumbers.push(slot.number);
-        }
-
-        function tryPurchaseNextRoom() {
-            if (Math.abs(playerGroup.position.y - MEZZ.height) > 1.5) return;
-            const nextSlot = newRoomSlots.find(s => !s.purchased);
-            if (!nextSlot) return;
-            if (horizontalDist(playerGroup.position, { x: nextSlot.x, z: nextSlot.z }) >= 4) return;
-            if (spendMoney(nextSlot.price)) {
-                nextSlot.purchased = true;
-                nextSlot.tile.visible = false;
-                buildPurchasedRoom(nextSlot);
-                showPrompt(`נרכש חדר ${nextSlot.number}! 🎉`);
-                const idx = newRoomSlots.indexOf(nextSlot);
-                if (newRoomSlots[idx + 1]) newRoomSlots[idx + 1].tile.visible = true;
-                saveGame();
-            } else {
-                showPrompt(`אין מספיק כסף לקניית חדר ${nextSlot.number}! חסר לך ${nextSlot.price - money} 💵`);
-            }
         }
 
         // ==========================================================
@@ -1375,12 +1294,12 @@
             { x: STAIR.cx, z: -22 },
             { x: STAIR.cx, z: -25 },
             { x: STAIR.cx, z: -28 },
-        ].map((slot, i) => ({ ...slot, price: 100 * (i + 1), purchased: false, tile: null }));
+        ].map((slot, i) => ({ ...slot, price: GLOBAL_CLEANER_PRICES[i], purchased: false, tile: null, floorIdx: 1 }));
 
-        cleanerSlots.forEach((slot, i) => {
+        cleanerSlots.forEach(slot => {
             const tile = createCleanerPriceTile(slot.price);
             tile.position.set(slot.x, MEZZ.height + 0.05, slot.z);
-            tile.visible = (i === 0);
+            tile.visible = false;
             scene.add(tile);
             slot.tile = tile;
         });
@@ -1395,24 +1314,6 @@
             });
         }
 
-        function tryPurchaseNextCleaner() {
-            if (Math.abs(playerGroup.position.y - MEZZ.height) > 1.5) return;
-            const nextSlot = cleanerSlots.find(s => !s.purchased);
-            if (!nextSlot) return;
-            if (horizontalDist(playerGroup.position, { x: nextSlot.x, z: nextSlot.z }) >= 4) return;
-            if (spendMoney(nextSlot.price)) {
-                nextSlot.purchased = true;
-                nextSlot.tile.visible = false;
-                hireCleaner(nextSlot);
-                showPrompt('נשכרה מנקה חדשה! 🧹');
-                const idx = cleanerSlots.indexOf(nextSlot);
-                if (cleanerSlots[idx + 1]) cleanerSlots[idx + 1].tile.visible = true;
-                saveGame();
-            } else {
-                showPrompt(`אין מספיק כסף לשכירת מנקה! חסר לך ${nextSlot.price - money} 💵`);
-            }
-        }
-
         // ==========================================================
         // קומות 3 עד 9 - אותה כמות בדיוק של חדרים (13) ומנקים (5) כמו בקומה 2,
         // רק שכולם ניתנים לרכישה (בלי חדרים חינמיים) בכל קומה
@@ -1420,113 +1321,110 @@
         const ROOM_ROW1_X = [-33, -21, -9, 3, 15, 27, 39];
         const ROOM_ROW2_X = [-33, -21, -9, 3, 15, 27];
 
-        function computeRoomLadder(count) {
-            const arr = [];
-            let prev = 0;
-            for (let n = 1; n <= count; n++) {
-                const price = n === 1 ? 50 : prev + 50 * (n - 1);
-                arr.push(price);
-                prev = price;
-            }
-            return arr;
-        }
-
-        function buildFloorRoomSlots(floorIdx) {
+        function buildFloorRoomSlots(floorIdx, prices) {
             const height = FLOOR_HEIGHTS[floorIdx];
             const floorNum = floorIdx + 1; // floorIdx 2 => קומה 3
             const positions = [
                 ...ROOM_ROW1_X.map(x => ({ x, z: -41 })),
                 ...ROOM_ROW2_X.map(x => ({ x, z: -31 })),
             ];
-            const prices = computeRoomLadder(positions.length);
             const slots = positions.map((pos, i) => ({
                 x: pos.x, z: pos.z, price: prices[i], purchased: false, tile: null,
                 number: `${floorNum}${String(i + 1).padStart(2, '0')}`,
                 floorIdx,
             }));
-            slots.forEach((slot, i) => {
+            slots.forEach(slot => {
                 const tile = createPriceTile(slot.price);
                 tile.position.set(slot.x, height + 0.05, slot.z);
-                tile.visible = (i === 0);
+                tile.visible = false;
                 scene.add(tile);
                 slot.tile = tile;
             });
             return slots;
         }
 
-        function buildFloorCleanerSlots(floorIdx) {
+        function buildFloorCleanerSlots(floorIdx, prices) {
             const height = FLOOR_HEIGHTS[floorIdx];
             const slots = [-16, -19, -22, -25, -28].map((z, i) => ({
-                x: STAIR.cx, z, price: 100 * (i + 1), purchased: false, tile: null, floorIdx,
+                x: STAIR.cx, z, price: prices[i], purchased: false, tile: null, floorIdx,
             }));
-            slots.forEach((slot, i) => {
+            slots.forEach(slot => {
                 const tile = createCleanerPriceTile(slot.price);
                 tile.position.set(slot.x, height + 0.05, slot.z);
-                tile.visible = (i === 0);
+                tile.visible = false;
                 scene.add(tile);
                 slot.tile = tile;
             });
             return slots;
-        }
-
-        function buildPurchasedRoomOnFloor(slot) {
-            const colors = [0xd63031, 0x0984e3, 0x00b894, 0xe17055, 0x6c5ce7, 0xfdcb6e, 0x00cec9, 0xe84393, 0x636e72, 0x0fb9b1];
-            const accent = colors[Math.floor(Math.random() * colors.length)];
-            const height = FLOOR_HEIGHTS[slot.floorIdx];
-            createHotelRoom(slot.x, slot.z, slot.number, accent, height, slot.floorIdx);
-            roomPositions[slot.number] = { x: slot.x, z: slot.z, floorIdx: slot.floorIdx };
-            allRoomNumbers.push(slot.number);
-        }
-
-        function tryPurchaseNextRoomOnFloor(slots, floorIdx) {
-            if (Math.abs(playerGroup.position.y - FLOOR_HEIGHTS[floorIdx]) > 1.5) return;
-            const nextSlot = slots.find(s => !s.purchased);
-            if (!nextSlot) return;
-            if (horizontalDist(playerGroup.position, { x: nextSlot.x, z: nextSlot.z }) >= 4) return;
-            if (spendMoney(nextSlot.price)) {
-                nextSlot.purchased = true;
-                nextSlot.tile.visible = false;
-                buildPurchasedRoomOnFloor(nextSlot);
-                showPrompt(`נרכש חדר ${nextSlot.number}! 🎉`);
-                const idx = slots.indexOf(nextSlot);
-                if (slots[idx + 1]) slots[idx + 1].tile.visible = true;
-                saveGame();
-            } else {
-                showPrompt(`אין מספיק כסף לקניית חדר ${nextSlot.number}! חסר לך ${nextSlot.price - money} 💵`);
-            }
-        }
-
-        function tryPurchaseNextCleanerOnFloor(slots, floorIdx) {
-            if (Math.abs(playerGroup.position.y - FLOOR_HEIGHTS[floorIdx]) > 1.5) return;
-            const nextSlot = slots.find(s => !s.purchased);
-            if (!nextSlot) return;
-            if (horizontalDist(playerGroup.position, { x: nextSlot.x, z: nextSlot.z }) >= 4) return;
-            if (spendMoney(nextSlot.price)) {
-                nextSlot.purchased = true;
-                nextSlot.tile.visible = false;
-                hireCleaner(nextSlot, FLOOR_HEIGHTS[floorIdx], floorIdx);
-                showPrompt('נשכרה מנקה חדשה! 🧹');
-                const idx = slots.indexOf(nextSlot);
-                if (slots[idx + 1]) slots[idx + 1].tile.visible = true;
-                saveGame();
-            } else {
-                showPrompt(`אין מספיק כסף לשכירת מנקה! חסר לך ${nextSlot.price - money} 💵`);
-            }
         }
 
         const allFloorRoomSlots = [];    // אינדקס 0 = קומה 3, 1 = קומה 4 ... 6 = קומה 9
         const allFloorCleanerSlots = [];
         for (let f = 2; f <= 8; f++) {
-            allFloorRoomSlots.push(buildFloorRoomSlots(f));
-            allFloorCleanerSlots.push(buildFloorCleanerSlots(f));
+            const roomStart = 10 + (f - 2) * 13;
+            const cleanerStart = 5 + (f - 2) * 5;
+            allFloorRoomSlots.push(buildFloorRoomSlots(f, GLOBAL_ROOM_PRICES.slice(roomStart, roomStart + 13)));
+            allFloorCleanerSlots.push(buildFloorCleanerSlots(f, GLOBAL_CLEANER_PRICES.slice(cleanerStart, cleanerStart + 5)));
         }
 
-        function tryPurchaseOnAllUpperFloors() {
-            for (let i = 0; i < allFloorRoomSlots.length; i++) {
-                tryPurchaseNextRoomOnFloor(allFloorRoomSlots[i], i + 2);
-                tryPurchaseNextCleanerOnFloor(allFloorCleanerSlots[i], i + 2);
+        // --- רצף גלובלי אחד לחדרים (ורצף גלובלי נפרד למנקות), על פני כל הקומות ---
+        const roomSlotGroups = [newRoomSlots, ...allFloorRoomSlots];
+        const cleanerSlotGroups = [cleanerSlots, ...allFloorCleanerSlots];
+
+        function getGlobalNextSlot(groups) {
+            for (const group of groups) {
+                const next = group.find(s => !s.purchased);
+                if (next) return next;
+            }
+            return null;
+        }
+
+        function refreshRoomTileVisibility() {
+            roomSlotGroups.forEach(group => group.forEach(s => { if (!s.purchased) s.tile.visible = false; }));
+            const next = getGlobalNextSlot(roomSlotGroups);
+            if (next) next.tile.visible = true;
+        }
+
+        function refreshCleanerTileVisibility() {
+            cleanerSlotGroups.forEach(group => group.forEach(s => { if (!s.purchased) s.tile.visible = false; }));
+            const next = getGlobalNextSlot(cleanerSlotGroups);
+            if (next) next.tile.visible = true;
+        }
+
+        function tryPurchaseGlobalNextRoom() {
+            const slot = getGlobalNextSlot(roomSlotGroups);
+            if (!slot) return;
+            if (Math.abs(playerGroup.position.y - FLOOR_HEIGHTS[slot.floorIdx]) > 1.5) return;
+            if (horizontalDist(playerGroup.position, { x: slot.x, z: slot.z }) >= 4) return;
+            if (spendMoney(slot.price)) {
+                slot.purchased = true;
+                buildPurchasedRoomOnFloor(slot);
+                showPrompt(`נרכש חדר ${slot.number}! 🎉`);
+                refreshRoomTileVisibility();
+                saveGame();
+            } else {
+                showPrompt(`אין מספיק כסף לקניית חדר ${slot.number}! חסר לך ${slot.price - money} 💵`);
             }
         }
+
+        function tryPurchaseGlobalNextCleaner() {
+            const slot = getGlobalNextSlot(cleanerSlotGroups);
+            if (!slot) return;
+            if (Math.abs(playerGroup.position.y - FLOOR_HEIGHTS[slot.floorIdx]) > 1.5) return;
+            if (horizontalDist(playerGroup.position, { x: slot.x, z: slot.z }) >= 4) return;
+            if (spendMoney(slot.price)) {
+                slot.purchased = true;
+                hireCleaner(slot, FLOOR_HEIGHTS[slot.floorIdx], slot.floorIdx);
+                showPrompt('נשכרה מנקה חדשה! 🧹');
+                refreshCleanerTileVisibility();
+                saveGame();
+            } else {
+                showPrompt(`אין מספיק כסף לשכירת מנקה! חסר לך ${slot.price - money} 💵`);
+            }
+        }
+
+        refreshRoomTileVisibility();
+        refreshCleanerTileVisibility();
 
         function updateCleaners(delta) {
             cleaners.forEach(c => {
@@ -1666,9 +1564,9 @@
 
         const receptionists = [];
         const receptionistSlots = [
-            { x: -4, z: -4.3, price: 150, purchased: false, tile: null },
-            { x: 0, z: -4.3, price: 300, purchased: false, tile: null },
-            { x: 4, z: -4.3, price: 450, purchased: false, tile: null },
+            { x: 11, z: -2, price: 150, purchased: false, tile: null },
+            { x: 14, z: -2, price: 300, purchased: false, tile: null },
+            { x: 17, z: -2, price: 450, purchased: false, tile: null },
         ];
 
         receptionistSlots.forEach((slot, i) => {
@@ -1682,7 +1580,7 @@
         function hireReceptionist(slot) {
             const mesh = createReceptionistMesh();
             mesh.position.set(slot.x, 0, slot.z);
-            mesh.rotation.y = Math.PI; // פונה לכיוון האורחים
+            mesh.rotation.y = Math.PI / 2; // פונה לכיוון הדלפק/הלובי
             scene.add(mesh);
             receptionists.push({ mesh, state: 'idle', timer: 0, guest: null, room: null });
         }
@@ -2047,26 +1945,18 @@
                     state.purchasedRooms.forEach((purchased, i) => {
                         if (purchased && newRoomSlots[i] && !newRoomSlots[i].purchased) {
                             newRoomSlots[i].purchased = true;
-                            newRoomSlots[i].tile.visible = false;
-                            buildPurchasedRoom(newRoomSlots[i]);
+                            buildPurchasedRoomOnFloor(newRoomSlots[i]);
                         }
                     });
-                    const nextSlot = newRoomSlots.find(s => !s.purchased);
-                    newRoomSlots.forEach(s => { if (!s.purchased) s.tile.visible = false; });
-                    if (nextSlot) nextSlot.tile.visible = true;
                 }
 
                 if (Array.isArray(state.purchasedCleaners)) {
                     state.purchasedCleaners.forEach((purchased, i) => {
                         if (purchased && cleanerSlots[i] && !cleanerSlots[i].purchased) {
                             cleanerSlots[i].purchased = true;
-                            cleanerSlots[i].tile.visible = false;
-                            hireCleaner(cleanerSlots[i]);
+                            hireCleaner(cleanerSlots[i], MEZZ.height, 1);
                         }
                     });
-                    const nextCleanerSlot = cleanerSlots.find(s => !s.purchased);
-                    cleanerSlots.forEach(s => { if (!s.purchased) s.tile.visible = false; });
-                    if (nextCleanerSlot) nextCleanerSlot.tile.visible = true;
                 }
 
                 if (Array.isArray(state.purchasedReceptionists)) {
@@ -2103,13 +1993,9 @@
                         purchasedArr.forEach((purchased, i) => {
                             if (purchased && slots[i] && !slots[i].purchased) {
                                 slots[i].purchased = true;
-                                slots[i].tile.visible = false;
                                 buildPurchasedRoomOnFloor(slots[i]);
                             }
                         });
-                        const nextSlot = slots.find(s => !s.purchased);
-                        slots.forEach(s => { if (!s.purchased) s.tile.visible = false; });
-                        if (nextSlot) nextSlot.tile.visible = true;
                     });
                 }
 
@@ -2121,15 +2007,15 @@
                         purchasedArr.forEach((purchased, i) => {
                             if (purchased && slots[i] && !slots[i].purchased) {
                                 slots[i].purchased = true;
-                                slots[i].tile.visible = false;
                                 hireCleaner(slots[i], FLOOR_HEIGHTS[floorIdx], floorIdx);
                             }
                         });
-                        const nextSlot = slots.find(s => !s.purchased);
-                        slots.forEach(s => { if (!s.purchased) s.tile.visible = false; });
-                        if (nextSlot) nextSlot.tile.visible = true;
                     });
                 }
+
+                // אחרי שחזור כל הרכישות (בכל הקומות) - קובעים מחדש איזו משבצת אחת גלובלית מוצגת
+                refreshRoomTileVisibility();
+                refreshCleanerTileVisibility();
             } catch (e) {
                 console.warn('טעינת המשחק נכשלה', e);
             }
@@ -2257,34 +2143,24 @@
         }
 
         // בונה את קטע המדרגות בין קומה fromIdx לקומה fromIdx+1 (שתי נקודות: תחתית ואז ראש)
-        function stairFlightWaypoints(fromIdx) {
-            const x = UP_STAIR_X[fromIdx];
-            const zBase = fromIdx === 0 ? STAIR.cz : FLOOR_ZMAX;
-            const zTop = zBase - STAIR.totalRun;
-            return [
-                { x, y: FLOOR_HEIGHTS[fromIdx], z: zBase },
-                { x, y: FLOOR_HEIGHTS[fromIdx + 1], z: zTop },
-            ];
-        }
-
         function buildPathToRoom(room) {
             const roomPos = roomPositions[room];
             const targetFloor = roomPos.floorIdx;
-            const waypoints = [];
-            for (let f = 0; f < targetFloor; f++) {
-                waypoints.push(...stairFlightWaypoints(f));
+            if (targetFloor === 0) {
+                return [{ x: roomPos.x, y: 0, z: roomPos.z }];
             }
-            waypoints.push({ x: roomPos.x, y: FLOOR_HEIGHTS[targetFloor], z: roomPos.z });
-            return waypoints;
+            return [
+                { x: ELEVATOR_POS.x, y: 0, z: ELEVATOR_POS.z + 3 },
+                { x: roomPos.x, y: FLOOR_HEIGHTS[targetFloor], z: roomPos.z },
+            ];
         }
 
         function buildPathToExit(room) {
             const roomPos = roomPositions[room];
             const fromFloor = roomPos.floorIdx;
             const waypoints = [];
-            for (let f = fromFloor; f > 0; f--) {
-                const flight = stairFlightWaypoints(f - 1);
-                waypoints.push(flight[1], flight[0]); // יורדים - הפוך מהעלייה
+            if (fromFloor > 0) {
+                waypoints.push({ x: ELEVATOR_POS.x, y: 0, z: ELEVATOR_POS.z + 3 });
             }
             waypoints.push({ x: DOOR_POS.x, y: 0, z: DOOR_POS.z });
             return waypoints;
@@ -2564,11 +2440,10 @@
             if (getHoldContext()) {
                 checkinHolding = true;
             } else {
-                tryPurchaseNextRoom();
-                tryPurchaseNextCleaner();
+                tryPurchaseGlobalNextRoom();
+                tryPurchaseGlobalNextCleaner();
                 tryPurchaseNextReceptionist();
                 tryTakeToiletPaper();
-                tryPurchaseOnAllUpperFloors();
             }
         }
 
@@ -2576,11 +2451,10 @@
         // שכבר יש להן כפתור החזקה משלהן שתומך גם במגע)
         document.getElementById('mobile-action-btn').addEventListener('click', () => {
             if (!getHoldContext()) {
-                tryPurchaseNextRoom();
-                tryPurchaseNextCleaner();
+                tryPurchaseGlobalNextRoom();
+                tryPurchaseGlobalNextCleaner();
                 tryPurchaseNextReceptionist();
                 tryTakeToiletPaper();
-                tryPurchaseOnAllUpperFloors();
             }
         });
 
@@ -2725,11 +2599,18 @@
             updateToiletVisitors(delta);
             toiletStalls.forEach(s => { if (s.indicatorMesh.visible) s.indicatorMesh.lookAt(camera.position); });
 
-            // --- מעלית: נכנסים אליה ונפתח תפריט קומות אוטומטית ---
-            const distToElevator = horizontalDist(playerGroup.position, ELEVATOR_POS);
-            if (distToElevator < 2 && playerGroup.position.y < 1) {
+            // --- מעלית: נכנסים אליה ונפתח תפריט קומות אוטומטית (יש מעלית בכל קומה) ---
+            const distToGroundElevator = horizontalDist(playerGroup.position, ELEVATOR_POS);
+            const distToFloorElevator = horizontalDist(playerGroup.position, FLOOR_LANDING_POS);
+            const nearElevator = (playerCurrentFloorIdx === 0 && distToGroundElevator < 2) ||
+                                  (playerCurrentFloorIdx >= 1 && distToFloorElevator < 2);
+            const farFromElevator = distToGroundElevator > 3 && distToFloorElevator > 3;
+            if (farFromElevator) {
+                elevatorArmed = true; // יצאנו מטווח המעלית - מותר לפתוח שוב בפעם הבאה
+            }
+            if (nearElevator && elevatorArmed) {
                 openElevatorMenu();
-            } else if (distToElevator > 3 && elevatorMenuOpen) {
+            } else if (elevatorMenuOpen && farFromElevator) {
                 closeElevatorMenu();
             }
 
