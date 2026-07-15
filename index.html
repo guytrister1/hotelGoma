@@ -1524,8 +1524,9 @@
         const TOTAL_ROOM_SLOTS = 10 + 6 * 13;      // קומה 2 + 6 קומות נוספות (קומה 3 הפכה לחדר אוכל)
         const GLOBAL_ROOM_PRICES = computeRoomLadder(TOTAL_ROOM_SLOTS);
         const TOTAL_CLEANER_SLOTS = 5 + 6 * 5;
-        const GLOBAL_CLEANER_PRICES = [];
-        for (let n = 1; n <= TOTAL_CLEANER_SLOTS; n++) GLOBAL_CLEANER_PRICES.push(100 * n);
+        const GLOBAL_CLEANER_PRICES = [100, 200, 300, 400, 500]; // קומה 2 - נשאר כמו שהיה
+        const UPPER_CLEANER_COUNT = 6 * 5; // 30 מנקות נוספות בקומות 4 עד 9
+        for (let n = 0; n < UPPER_CLEANER_COUNT; n++) GLOBAL_CLEANER_PRICES.push(2000 + n * 300);
 
         const newRoomSlots = [
             { x: 3, z: -41, number: '204' },
@@ -1748,7 +1749,7 @@
             allFloorCleanerSlots.push(buildFloorCleanerSlots(f, GLOBAL_CLEANER_PRICES.slice(cleanerStart, cleanerStart + 5)));
         });
 
-        // --- רצף גלובלי אחד לחדרים (ורצף גלובלי נפרד למנקות), על פני כל הקומות ---
+        // --- רצף גלובלי אחד לחדרים ואחד נפרד למנקות - בכל אחד, קומה לא מתקדמת לפני שהקודמת נגמרה ---
         const roomSlotGroups = [newRoomSlots, ...allFloorRoomSlots];
         const cleanerSlotGroups = [cleanerSlots, ...allFloorCleanerSlots];
 
@@ -1761,13 +1762,13 @@
         }
 
         function refreshRoomTileVisibility() {
-            roomSlotGroups.forEach(group => group.forEach(s => { if (!s.purchased) s.tile.visible = false; }));
+            roomSlotGroups.forEach(group => group.forEach(s => { s.tile.visible = false; }));
             const next = getGlobalNextSlot(roomSlotGroups);
             if (next) next.tile.visible = true;
         }
 
         function refreshCleanerTileVisibility() {
-            cleanerSlotGroups.forEach(group => group.forEach(s => { if (!s.purchased) s.tile.visible = false; }));
+            cleanerSlotGroups.forEach(group => group.forEach(s => { s.tile.visible = false; }));
             const next = getGlobalNextSlot(cleanerSlotGroups);
             if (next) next.tile.visible = true;
         }
@@ -1788,6 +1789,7 @@
             }
         }
 
+        // קונה את המנקה הבאה בתור בכל המשחק - קומה חדשה לא נפתחת עד שהקודמת הושלמה לגמרי
         function tryPurchaseGlobalNextCleaner() {
             const slot = getGlobalNextSlot(cleanerSlotGroups);
             if (!slot) return;
@@ -2297,7 +2299,7 @@
         // ==========================================================
         // שמירת התקדמות (localStorage) - נשמר גם אחרי רענון וגם אחרי סגירת הדפדפן
         // ==========================================================
-        const SAVE_KEY = 'hotelGomaSave_v2';
+        const SAVE_KEY = 'hotelGomaSave_v3';
 
         function saveGame() {
             try {
